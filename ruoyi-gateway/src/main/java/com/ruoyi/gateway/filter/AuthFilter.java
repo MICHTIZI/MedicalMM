@@ -119,10 +119,14 @@ public class AuthFilter implements GlobalFilter, Ordered
     private String getToken(ServerHttpRequest request)
     {
         String token = request.getHeaders().getFirst(SecurityConstants.AUTHORIZATION_HEADER);
-        // 如果前端设置了令牌前缀，则裁剪掉前缀
         if (StringUtils.isNotEmpty(token) && token.startsWith(TokenConstants.PREFIX))
         {
             token = token.replaceFirst(TokenConstants.PREFIX, StringUtils.EMPTY);
+        }
+        // 兼容 <img> 等标签无法携带 Header 的场景，从 URL 参数获取 token
+        if (StringUtils.isEmpty(token))
+        {
+            token = request.getQueryParams().getFirst("token");
         }
         return token;
     }

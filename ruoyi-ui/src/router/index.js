@@ -195,6 +195,34 @@ export const dynamicRoutes = [
         meta: { title: '病历详情', activeMenu: '/emr/record' }
       }
     ]
+  },
+  {
+    path: '/imaging/xray-detail',
+    component: Layout,
+    hidden: true,
+    permissions: ['imaging:xray:query'],
+    children: [
+      {
+        path: 'index',
+        component: () => import('@/views/medical/imaging/xray/detail'),
+        name: 'ImagingXrayDetail',
+        meta: { title: '影像详情', activeMenu: '/imaging/xray' }
+      }
+    ]
+  },
+  {
+    path: '/imaging/annotate-edit',
+    component: Layout,
+    hidden: true,
+    permissions: ['imaging:xray:annotate'],
+    children: [
+      {
+        path: 'index',
+        component: () => import('@/views/medical/imaging/annotate/edit'),
+        name: 'ImagingAnnotateEdit',
+        meta: { title: '影像标注', activeMenu: '/imaging/annotate' }
+      }
+    ]
   }
 ]
 
