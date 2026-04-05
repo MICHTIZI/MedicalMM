@@ -167,6 +167,34 @@ export const dynamicRoutes = [
         meta: { title: '修改生成配置', activeMenu: '/tool/gen' }
       }
     ]
+  },
+  {
+    path: '/emr/record-edit',
+    component: Layout,
+    hidden: true,
+    permissions: ['emr:record:add', 'emr:record:edit'],
+    children: [
+      {
+        path: 'index',
+        component: () => import('@/views/medical/emr/record/edit'),
+        name: 'EmrRecordEdit',
+        meta: { title: '病历编辑', activeMenu: '/emr/record' }
+      }
+    ]
+  },
+  {
+    path: '/emr/record-detail',
+    component: Layout,
+    hidden: true,
+    permissions: ['emr:record:query'],
+    children: [
+      {
+        path: 'index',
+        component: () => import('@/views/medical/emr/record/detail'),
+        name: 'EmrRecordDetail',
+        meta: { title: '病历详情', activeMenu: '/emr/record' }
+      }
+    ]
   }
 ]
 

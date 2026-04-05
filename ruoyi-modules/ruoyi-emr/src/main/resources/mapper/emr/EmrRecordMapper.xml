@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.emr.mapper.EmrRecordMapper">
+
+    <select id="selectRecordPage" resultType="com.ruoyi.emr.domain.EmrRecord">
+        SELECT DISTINCT r.*
+        FROM emr_record r
+        <where>
+            <if test="q.keyword != null and q.keyword != ''">
+                AND (r.title LIKE CONCAT('%', #{q.keyword}, '%')
+                OR r.content LIKE CONCAT('%', #{q.keyword}, '%')
+                OR r.disease LIKE CONCAT('%', #{q.keyword}, '%'))
+            </if>
+            <if test="q.disease != null and q.disease != ''">
+                AND r.disease LIKE CONCAT('%', #{q.disease}, '%')
+            </if>
+            <if test="q.archiveStatus != null and q.archiveStatus != ''">
+                AND r.archive_status = #{q.archiveStatus}
+            </if>
+            <if test="q.recordType != null and q.recordType != ''">
+                AND r.record_type = #{q.recordType}
+            </if>
+            <if test="q.beginTime != null">
+                AND r.create_time &gt;= #{q.beginTime}
+            </if>
+            <if test="q.endTime != null">
+                AND r.create_time &lt;= #{q.endTime}
+            </if>
+            <foreach collection="q.entityFilters" item="f">
+                <if test="f.labelType != null and f.labelType != '' and f.keyword != null and f.keyword != ''">
+                    AND EXISTS (
+                        SELECT 1 FROM emr_entity e
+                        WHERE e.record_id = r.id
+                        AND e.label_type = #{f.labelType}
+                        AND e.entity_text LIKE CONCAT('%', #{f.keyword}, '%')
+                    )
+                </if>
+            </foreach>
+        </where>
+        ORDER BY r.create_time DESC
+    </select>
+</mapper>

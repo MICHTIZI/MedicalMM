@@ -1,0 +1,10 @@
+# ÎÄ¼þ±àÂë: UTF-8
+# Merge into Nacos: ruoyi-gateway-dev.yml -> spring.cloud.gateway.server.webflux.routes
+# (YAML list item, same indent as other routes)
+
+            - id: ruoyi-emr
+              uri: lb://ruoyi-emr
+              predicates:
+                - Path=/emr/**
+              filters:
+                - StripPrefix=1

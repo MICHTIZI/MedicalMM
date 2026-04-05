@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 ######################################################################
 # Build Tools
 
@@ -44,3 +45,29 @@ nbdist/
 !*/build/*.java
 !*/build/*.html
 !*/build/*.xml
+=======
+# Compiled class file
+*.class
+
+# Log file
+*.log
+
+# BlueJ files
+*.ctxt
+
+# Mobile Tools for Java (J2ME)
+.mtj.tmp/
+
+# Package Files #
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+hs_err_pid*
+replay_pid*
+>>>>>>> d8e85bd314430e1d7e17891c4af220cc9b28d211

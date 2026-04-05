@@ -1,0 +1,7 @@
+# 仓库根配置：后端与脚本等目录统一 UTF-8（ruoyi-ui 子目录有独立 root，仍已声明 utf-8）
+root = true
+
+[*.{java,xml,yml,yaml,properties,sql,gradle}]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
