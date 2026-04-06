@@ -14,19 +14,19 @@ public class EmrTemplate
     @TableId(type = IdType.AUTO)
     private Long id;
 
-    @Excel(name = "模板名称")
+    @Excel(name = "妯℃澘鍚嶇О")
     @TableField("template_name")
     private String templateName;
 
-    @Excel(name = "模板类型", readConverterExp = "admission=入院记录,discharge=出院记录,surgery=手术记录,course=病程记录")
+    @Excel(name = "妯℃澘绫诲瀷", readConverterExp = "admission=鍏ラ櫌璁板綍,discharge=鍑洪櫌璁板綍,surgery=鎵嬫湳璁板綍,course=鐥呯▼璁板綍")
     @TableField("template_type")
     private String templateType;
 
-    @Excel(name = "模板内容")
+    @Excel(name = "妯℃澘鍐呭")
     @TableField("template_content")
     private String templateContent;
 
-    @Excel(name = "备注")
+    @Excel(name = "澶囨敞")
     private String remark;
 
     @TableField("create_time")

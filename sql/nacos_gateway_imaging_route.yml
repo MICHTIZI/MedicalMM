@@ -1,25 +1,13 @@
 # 文件编码: UTF-8
 # ============================================================
-# 1. 路由配置
-#    合并到 Nacos: ruoyi-gateway-dev.yml -> spring.cloud.gateway.server.webflux.routes
-#    （YAML 列表项，与其他路由缩进对齐）
+# 影像管理已合并到 ruoyi-emr 模块，路由指向 ruoyi-emr
+# 合并到 Nacos: ruoyi-gateway-dev.yml -> spring.cloud.gateway.server.webflux.routes
+# （YAML 列表项，与其他路由缩进对齐）
 # ============================================================
 
             - id: ruoyi-imaging
-              uri: lb://ruoyi-imaging
+              uri: lb://ruoyi-emr
               predicates:
                 - Path=/imaging/**
               filters:
                 - StripPrefix=1
-
-# ============================================================
-# 2. 网关白名单（必须添加，否则图片无法加载！）
-#    合并到 Nacos: ruoyi-gateway-dev.yml -> security.ignore.whites 列表末尾
-#    图片代理接口无需 JWT 鉴权，浏览器 <img> 标签不携带 Authorization 头
-# ============================================================
-#
-# security:
-#   ignore:
-#     whites:
-#       ... (已有的白名单项) ...
-#       - /imaging/xray/image/**

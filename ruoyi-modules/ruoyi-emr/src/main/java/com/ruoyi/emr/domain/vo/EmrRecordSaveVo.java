@@ -11,7 +11,7 @@ public class EmrRecordSaveVo implements Serializable
 {
     private static final long serialVersionUID = 1L;
 
-    @NotNull(message = "病历主表不能为空")
+    @NotNull(message = "鐥呭巻涓昏〃涓嶈兘涓虹┖")
     @Valid
     private EmrRecord record;
 

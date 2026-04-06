@@ -30,7 +30,7 @@ import com.ruoyi.emr.domain.EmrTemplate;
 import com.ruoyi.emr.service.IEmrTemplateService;
 
 /**
- * ²¡ÀúÄ£°å CRUD Óë Excel µ¼Èëµ¼³ö¡£
+ * ç—…å†æ¨¡æ¿ CRUD ä¸ Excel å¯¼å…¥å¯¼å‡ºã€‚
  */
 @RestController
 @RequestMapping("/template")

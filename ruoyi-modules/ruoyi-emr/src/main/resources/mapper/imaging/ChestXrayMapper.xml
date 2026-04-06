@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.emr.mapper.ChestXrayMapper">
+
+    <select id="selectChestXrayPage" resultType="com.ruoyi.emr.domain.ChestXray">
+        SELECT cx.*
+        FROM chest_xray cx
+        <if test="q.seqId != null">
+            INNER JOIN sequence_image si ON si.image_id = cx.id AND si.seq_id = #{q.seqId}
+        </if>
+        <where>
+            <if test="q.keyword != null and q.keyword != ''">
+                AND (cx.image_name LIKE CONCAT('%', #{q.keyword}, '%')
+                  OR cx.diseases LIKE CONCAT('%', #{q.keyword}, '%'))
+            </if>
+            <if test="q.diseases != null and q.diseases != ''">
+                AND cx.diseases LIKE CONCAT('%', #{q.diseases}, '%')
+            </if>
+            <if test="q.imageName != null and q.imageName != ''">
+                AND cx.image_name LIKE CONCAT('%', #{q.imageName}, '%')
+            </if>
+            <if test="q.labelStr != null and q.labelStr != ''">
+                AND cx.label_str = #{q.labelStr}
+            </if>
+            <if test="q.minWidth != null">
+                AND cx.width &gt;= #{q.minWidth}
+            </if>
+            <if test="q.maxWidth != null">
+                AND cx.width &lt;= #{q.maxWidth}
+            </if>
+            <if test="q.beginTime != null and q.beginTime != ''">
+                AND cx.create_time &gt;= #{q.beginTime}
+            </if>
+            <if test="q.endTime != null and q.endTime != ''">
+                AND cx.create_time &lt;= #{q.endTime}
+            </if>
+        </where>
+        ORDER BY cx.create_time DESC
+    </select>
+
+</mapper>

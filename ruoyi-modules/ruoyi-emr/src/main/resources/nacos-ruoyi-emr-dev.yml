@@ -1,4 +1,4 @@
-# ???????????????? Nacos??DataId = ruoyi-emr-dev.yml??Group = DEFAULT_GROUP
+# 发布到 Nacos: DataId = ruoyi-emr-dev.yml, Group = DEFAULT_GROUP
 spring:
   data:
     redis:
@@ -10,6 +10,10 @@ spring:
     url: jdbc:mysql://localhost:3306/medical_db?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8
     username: root
     password: password
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 100MB
 
 mybatis-plus:
   mapper-locations: classpath*:mapper/**/*.xml
@@ -21,13 +25,20 @@ mybatis-plus:
     db-config:
       id-type: auto
 
+# MinIO 对象存储配置
+minio:
+  url: http://localhost:9000
+  accessKey: minioadmin
+  secretKey: minioadmin
+  bucketName: medical-imaging
+
 springdoc:
   gatewayUrl: http://localhost:8080/${spring.application.name}
   api-docs:
     enabled: true
   info:
-    title: ???????????????
-    description: EMR
+    title: 医疗辅助诊断平台接口
+    description: EMR + Imaging
     contact:
       name: RuoYi
       url: https://ruoyi.vip
