@@ -371,7 +371,7 @@ export default {
   height: 34px;
   width: 100%;
   background: #fff;
-  border-bottom: 1px solid #d8dce5;
+  border-bottom: 1px solid #e8ecf2;
   display: flex;
   align-items: center;
 
@@ -424,8 +424,8 @@ export default {
       cursor: pointer;
       height: 26px;
       line-height: 26px;
-      border: 1px solid #d8dce5;
-      color: #495060;
+      border: 1px solid #e8ecf2;
+      color: #666666;
       background: #fff;
       padding: 0 8px;
       font-size: 12px;
@@ -439,12 +439,12 @@ export default {
         margin-right: 15px;
       }
       &.active {
-        background-color: #42b983;
-        color: #fff;
-        border-color: #42b983;
+        background-color: #ecf3ff;
+        color: #165dff;
+        border-color: #165dff;
         &::before {
           content: '';
-          background: #fff;
+          background: #165dff;
           display: inline-block;
           width: 8px;
           height: 8px;

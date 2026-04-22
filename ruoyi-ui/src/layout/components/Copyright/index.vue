@@ -26,10 +26,10 @@ export default {
   height: 36px;
   padding: 10px 20px;
   text-align: right;
-  background-color: #f8f8f8;
-  color: #666;
-  font-size: 14px;
-  border-top: 1px solid #e7e7e7;
+  background-color: #f5f7fa;
+  color: #666666;
+  font-size: 13px;
+  border-top: 1px solid #e8ecf2;
   z-index: 999;
 }
 </style>

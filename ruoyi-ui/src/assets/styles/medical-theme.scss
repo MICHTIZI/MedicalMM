@@ -1,0 +1,147 @@
+/* ??????????? ?? ??? Element / ??????????????´„ */
+
+$medical-primary: #165dff;
+$medical-bg: #f5f7fa;
+$medical-border: #e8ecf2;
+$medical-text: #333333;
+$medical-text-secondary: #666666;
+
+body {
+  color: $medical-text;
+  background-color: #ffffff;
+}
+
+/* ?????????? */
+.el-button {
+  border-radius: 5px;
+  font-weight: 500;
+}
+
+.el-button--primary {
+  background-color: $medical-primary;
+  border-color: $medical-primary;
+
+  &:hover,
+  &:focus {
+    background-color: mix(#ffffff, $medical-primary, 12%);
+    border-color: mix(#ffffff, $medical-primary, 12%);
+  }
+
+  &:active {
+    background-color: mix(#000000, $medical-primary, 8%);
+    border-color: mix(#000000, $medical-primary, 8%);
+  }
+
+  &.is-disabled,
+  &.is-disabled:hover,
+  &.is-disabled:focus {
+    background-color: mix(#ffffff, $medical-primary, 55%);
+    border-color: mix(#ffffff, $medical-primary, 45%);
+    color: #ffffff;
+  }
+}
+
+.el-button--default {
+  border-color: #dcdfe6;
+  color: $medical-text-secondary;
+  background: #ffffff;
+
+  &:hover,
+  &:focus {
+    color: $medical-primary;
+    border-color: rgba($medical-primary, 0.45);
+    background: #ffffff;
+  }
+}
+
+.el-input__inner,
+.el-textarea__inner {
+  border-radius: 5px;
+}
+
+.el-card {
+  border-radius: 6px;
+  border-color: $medical-border;
+  box-shadow: none !important;
+}
+
+.el-table {
+  border-radius: 6px;
+  overflow: hidden;
+  color: $medical-text;
+
+  th.el-table__cell {
+    background: $medical-bg !important;
+    color: $medical-text-secondary !important;
+    font-weight: 600;
+  }
+}
+
+.el-pagination.is-background .el-pager li:not(.disabled).active {
+  background-color: $medical-primary !important;
+}
+
+.el-dialog {
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(22, 93, 255, 0.08) !important;
+}
+
+.el-dialog__header {
+  border-bottom: 1px solid $medical-border;
+  padding: 16px 20px;
+}
+
+.el-dialog__title {
+  color: $medical-text;
+  font-weight: 600;
+}
+
+.el-message-box {
+  border-radius: 8px;
+  border: 1px solid $medical-border;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.06) !important;
+}
+
+.el-message {
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06) !important;
+}
+
+.el-notification {
+  border-radius: 8px;
+  border: 1px solid $medical-border;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06) !important;
+}
+
+.el-drawer__header {
+  color: $medical-text;
+  font-weight: 600;
+  border-bottom: 1px solid $medical-border;
+  margin-bottom: 0;
+  padding-bottom: 16px;
+}
+
+.el-form-item__label {
+  color: $medical-text-secondary;
+}
+
+.el-tabs__item.is-active,
+.el-tabs__item:hover {
+  color: $medical-primary;
+}
+
+.el-tabs__active-bar {
+  background-color: $medical-primary;
+}
+
+.el-link.el-link--primary {
+  color: $medical-primary;
+}
+
+#nprogress .bar {
+  background: $medical-primary !important;
+}
+
+#nprogress .peg {
+  box-shadow: 0 0 10px $medical-primary, 0 0 5px $medical-primary !important;
+}

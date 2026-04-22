@@ -1,65 +1,72 @@
 <template>
-  <div class="register">
-    <el-form ref="registerForm" :model="registerForm" :rules="registerRules" class="register-form">
-      <h3 class="title">{{title}}</h3>
-      <el-form-item prop="username">
-        <el-input v-model="registerForm.username" type="text" auto-complete="off" placeholder="账号">
-          <svg-icon slot="prefix" icon-class="user" class="el-input__icon input-icon" />
-        </el-input>
-      </el-form-item>
-      <el-form-item prop="password">
-        <el-input
-          v-model="registerForm.password"
-          type="password"
-          auto-complete="off"
-          placeholder="密码"
-          @keyup.enter.native="handleRegister"
-        >
-          <svg-icon slot="prefix" icon-class="password" class="el-input__icon input-icon" />
-        </el-input>
-      </el-form-item>
-      <el-form-item prop="confirmPassword">
-        <el-input
-          v-model="registerForm.confirmPassword"
-          type="password"
-          auto-complete="off"
-          placeholder="确认密码"
-          @keyup.enter.native="handleRegister"
-        >
-          <svg-icon slot="prefix" icon-class="password" class="el-input__icon input-icon" />
-        </el-input>
-      </el-form-item>
-      <el-form-item prop="code" v-if="captchaEnabled">
-        <el-input
-          v-model="registerForm.code"
-          auto-complete="off"
-          placeholder="验证码"
-          style="width: 63%"
-          @keyup.enter.native="handleRegister"
-        >
-          <svg-icon slot="prefix" icon-class="validCode" class="el-input__icon input-icon" />
-        </el-input>
-        <div class="register-code">
-          <img :src="codeUrl" @click="getCode" class="register-code-img"/>
+  <div class="register medical-login">
+    <div class="medical-login__panel">
+      <div class="medical-login__brand">
+        <div class="medical-login__mark" aria-hidden="true" />
+        <div class="medical-login__brand-text">
+          <span class="medical-login__brand-title">{{ title }}</span>
+          <span class="medical-login__brand-sub">用户注册</span>
         </div>
-      </el-form-item>
-      <el-form-item style="width:100%;">
-        <el-button
-          :loading="loading"
-          size="medium"
-          type="primary"
-          style="width:100%;"
-          @click.native.prevent="handleRegister"
-        >
-          <span v-if="!loading">注 册</span>
-          <span v-else>注 册 中...</span>
-        </el-button>
-        <div style="float: right;">
-          <router-link class="link-type" :to="'/login'">使用已有账户登录</router-link>
-        </div>
-      </el-form-item>
-    </el-form>
-    <!--  底部  -->
+      </div>
+      <el-form ref="registerForm" :model="registerForm" :rules="registerRules" class="register-form">
+        <el-form-item prop="username">
+          <el-input v-model="registerForm.username" type="text" auto-complete="off" placeholder="账号">
+            <svg-icon slot="prefix" icon-class="user" class="el-input__icon input-icon" />
+          </el-input>
+        </el-form-item>
+        <el-form-item prop="password">
+          <el-input
+            v-model="registerForm.password"
+            type="password"
+            auto-complete="off"
+            placeholder="密码"
+            @keyup.enter.native="handleRegister"
+          >
+            <svg-icon slot="prefix" icon-class="password" class="el-input__icon input-icon" />
+          </el-input>
+        </el-form-item>
+        <el-form-item prop="confirmPassword">
+          <el-input
+            v-model="registerForm.confirmPassword"
+            type="password"
+            auto-complete="off"
+            placeholder="确认密码"
+            @keyup.enter.native="handleRegister"
+          >
+            <svg-icon slot="prefix" icon-class="password" class="el-input__icon input-icon" />
+          </el-input>
+        </el-form-item>
+        <el-form-item v-if="captchaEnabled" prop="code">
+          <el-input
+            v-model="registerForm.code"
+            auto-complete="off"
+            placeholder="验证码"
+            style="width: 63%"
+            @keyup.enter.native="handleRegister"
+          >
+            <svg-icon slot="prefix" icon-class="validCode" class="el-input__icon input-icon" />
+          </el-input>
+          <div class="register-code">
+            <img :src="codeUrl" class="register-code-img" @click="getCode">
+          </div>
+        </el-form-item>
+        <el-form-item class="medical-login__submit-wrap">
+          <el-button
+            :loading="loading"
+            size="medium"
+            type="primary"
+            class="medical-login__submit"
+            @click.native.prevent="handleRegister"
+          >
+            <span v-if="!loading">注 册</span>
+            <span v-else>注 册 中...</span>
+          </el-button>
+          <div class="medical-login__register-link">
+            <router-link class="link-type" :to="'/login'">使用已有账户登录</router-link>
+          </div>
+        </el-form-item>
+      </el-form>
+    </div>
     <div class="el-register-footer">
       <span>{{ footerContent }}</span>
     </div>
@@ -130,8 +137,7 @@ export default {
           this.loading = true
           register(this.registerForm).then(() => {
             const username = this.registerForm.username
-            this.$alert("<font color='red'>恭喜你，您的账号 " + username + " 注册成功！</font>", '系统提示', {
-              dangerouslyUseHTMLString: true,
+            this.$alert('账号「' + username + '」注册成功，请使用新账号登录。', '提示', {
               type: 'success'
             }).then(() => {
               this.$router.push("/login")
@@ -150,51 +156,107 @@ export default {
 </script>
 
 <style rel="stylesheet/scss" lang="scss" scoped>
-.register {
+.medical-login {
   display: flex;
   justify-content: center;
   align-items: center;
   height: 100%;
-  background-image: url("../assets/images/login-background.jpg");
-  background-size: cover;
+  min-height: 100vh;
+  background: #ffffff;
 }
-.title {
-  margin: 0px auto 30px auto;
-  text-align: center;
-  color: #707070;
+
+.medical-login__panel {
+  width: 100%;
+  max-width: 420px;
+  padding: 40px 36px 28px;
+  margin: 24px 16px 56px;
+  background: #ffffff;
+  border: 1px solid #e8ecf2;
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+
+.medical-login__brand {
+  display: flex;
+  align-items: center;
+  margin-bottom: 28px;
+}
+
+.medical-login__mark {
+  width: 4px;
+  height: 40px;
+  border-radius: 2px;
+  background: #165dff;
+  margin-right: 14px;
+  flex-shrink: 0;
+}
+
+.medical-login__brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.medical-login__brand-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #333333;
+  letter-spacing: 0.02em;
+}
+
+.medical-login__brand-sub {
+  font-size: 13px;
+  color: #666666;
 }
 
 .register-form {
-  border-radius: 6px;
-  background: #ffffff;
-  width: 400px;
-  padding: 25px 25px 5px 25px;
+  width: 100%;
+  padding: 0;
   .el-input {
-    height: 38px;
+    height: 40px;
     input {
-      height: 38px;
+      height: 40px;
+      border-radius: 5px;
     }
   }
   .input-icon {
-    height: 39px;
+    height: 40px;
     width: 14px;
     margin-left: 2px;
   }
 }
-.register-tip {
-  font-size: 13px;
-  text-align: center;
-  color: #bfbfbf;
+
+.medical-login__submit-wrap {
+  width: 100%;
+  margin-bottom: 0;
 }
+
+.medical-login__submit {
+  width: 100%;
+  border-radius: 5px;
+}
+
+.medical-login__register-link {
+  margin-top: 12px;
+  text-align: right;
+}
+
 .register-code {
   width: 33%;
-  height: 38px;
+  height: 40px;
   float: right;
   img {
     cursor: pointer;
     vertical-align: middle;
+    border-radius: 4px;
+    border: 1px solid #e8ecf2;
   }
 }
+
+.register-code-img {
+  height: 40px;
+}
+
 .el-register-footer {
   height: 40px;
   line-height: 40px;
@@ -202,12 +264,10 @@ export default {
   bottom: 0;
   width: 100%;
   text-align: center;
-  color: #fff;
-  font-family: Arial;
+  color: #666666;
   font-size: 12px;
-  letter-spacing: 1px;
-}
-.register-code-img {
-  height: 38px;
+  letter-spacing: 0.02em;
+  background: #ffffff;
+  border-top: 1px solid #f0f2f5;
 }
 </style>

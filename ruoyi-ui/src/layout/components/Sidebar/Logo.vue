@@ -59,9 +59,10 @@ export default {
   position: relative;
   height: 50px;
   line-height: 50px;
-  background: #2b2f3a;
+  background: transparent;
   text-align: center;
   overflow: hidden;
+  border-bottom: 1px solid #e8ecf2;
 
   & .sidebar-logo-link {
     height: 100%;
@@ -77,7 +78,6 @@ export default {
     & .sidebar-title {
       display: inline-block;
       margin: 0;
-      color: #fff;
       font-weight: 600;
       line-height: 50px;
       font-size: 14px;
