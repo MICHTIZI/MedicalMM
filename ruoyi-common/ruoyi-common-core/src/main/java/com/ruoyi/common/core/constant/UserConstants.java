@@ -85,4 +85,9 @@ public class UserConstants
     {
         return userId != null && 1L == userId;
     }
+
+    /**
+     * 自助注册默认绑定角色的权限字符（需在 sys_role 中配置 role_key 一致）
+     */
+    public static final String REGISTER_DEFAULT_ROLE_KEY = "doctor";
 }

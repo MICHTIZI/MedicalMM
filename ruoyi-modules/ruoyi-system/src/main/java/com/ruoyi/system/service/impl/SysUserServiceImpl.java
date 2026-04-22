@@ -276,9 +276,32 @@ public class SysUserServiceImpl implements ISysUserService
      * @return 结果
      */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public boolean registerUser(SysUser user)
     {
-        return userMapper.insertUser(user) > 0;
+        if (StringUtils.isEmpty(user.getCreateBy()))
+        {
+            user.setCreateBy(user.getUserName());
+        }
+        if (StringUtils.isEmpty(user.getStatus()))
+        {
+            user.setStatus(UserConstants.NORMAL);
+        }
+        int rows = userMapper.insertUser(user);
+        if (rows <= 0)
+        {
+            return false;
+        }
+        SysRole registerRole = roleMapper.checkRoleKeyUnique(UserConstants.REGISTER_DEFAULT_ROLE_KEY);
+        if (registerRole != null && registerRole.getRoleId() != null)
+        {
+            insertUserRole(user.getUserId(), new Long[] { registerRole.getRoleId() });
+        }
+        else
+        {
+            log.warn("未找到角色 role_key={}，注册用户未分配角色", UserConstants.REGISTER_DEFAULT_ROLE_KEY);
+        }
+        return true;
     }
 
     /**

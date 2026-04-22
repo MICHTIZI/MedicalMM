@@ -47,8 +47,7 @@ export const constantRoutes = [{
     },
     {
         path: '/register',
-        component: () =>
-            import ('@/views/register'),
+        redirect: '/login?tab=register',
         hidden: true
     },
     {
