@@ -39,6 +39,12 @@ module.exports = {
                 pathRewrite: {
                     ['^' + process.env.VUE_APP_BASE_API]: ''
                 }
+            },
+            // 医疗 AI 推理服务（Python，默认 127.0.0.1:5000）
+            '/ai-api': {
+                target: process.env.VUE_APP_AI_API || 'http://127.0.0.1:5000',
+                changeOrigin: true,
+                pathRewrite: { '^/ai-api': '' }
             }
         },
         disableHostCheck: true
