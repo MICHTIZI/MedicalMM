@@ -2,7 +2,7 @@
     .main-container {
         height: 100%;
         transition: margin-left .28s;
-        margin-left: $base-sidebar-width;
+        margin-left: calc(#{$base-sidebar-width} + 36px);
         position: relative;
     }
     .sidebarHide {
@@ -12,17 +12,19 @@
         -webkit-transition: width .28s;
         transition: width 0.28s;
         width: $base-sidebar-width !important;
-        background-color: $base-menu-background;
-        height: 100%;
+        background: transparent;
+        height: calc(100% - 104px);
         position: fixed;
         font-size: 0px;
-        top: 0;
-        bottom: 0;
-        left: 0;
-        z-index: 1001;
+        top: 88px;
+        bottom: 16px;
+        left: 18px;
+        z-index: 999;
         overflow: hidden;
-        box-shadow: none;
-        border-right: 1px solid #e8ecf2;
+        box-shadow: 0 18px 42px rgba(30, 58, 95, 0.1);
+        border: 1px solid rgba(30, 58, 95, 0.08);
+        border-radius: 24px;
+        backdrop-filter: blur(12px);
         // reset element-ui css
         .horizontal-collapse-transition {
             transition: 0s width ease-in-out, 0s padding-left ease-in-out, 0s padding-right ease-in-out;
@@ -38,7 +40,7 @@
         }
         &.has-logo {
             .el-scrollbar {
-                height: calc(100% - 50px);
+                height: calc(100% - 84px);
             }
         }
         .is-horizontal {
@@ -56,20 +58,25 @@
             border: none;
             height: 100%;
             width: 100% !important;
+            background: transparent !important;
         }
         .el-menu-item,
         .el-submenu__title {
             overflow: hidden !important;
             text-overflow: ellipsis !important;
             white-space: nowrap !important;
-            height: 44px !important;
-            line-height: 44px !important;
+            height: 46px !important;
+            line-height: 46px !important;
+            margin: 4px 0;
+            border-radius: 14px;
+            font-size: 15px;
+            color: $base-menu-color !important;
         }
         // menu hover
         .submenu-title-noDropdown,
         .el-submenu__title {
             &:hover {
-                background-color: rgba(0, 0, 0, 0.06) !important;
+                background-color: rgba(44, 122, 123, 0.1) !important;
             }
         }
         & .theme-dark .is-active>.el-submenu__title {
@@ -79,7 +86,7 @@
         & .el-submenu .el-menu-item {
             min-width: $base-sidebar-width !important;
             &:hover {
-                background-color: rgba(0, 0, 0, 0.06) !important;
+                background-color: $base-sub-menu-hover !important;
             }
         }
         & .theme-dark .nest-menu .el-submenu>.el-submenu__title,
@@ -92,21 +99,24 @@
         // theme-dark（变量已调整为白底医疗风，样式与浅色侧栏一致）
         &.theme-dark {
             box-shadow: none;
-            border-right: 1px solid #e8ecf2;
+            border-right: 0;
             .el-menu-item.is-active {
                 position: relative;
+                color: $base-menu-color-active !important;
+                font-weight: 700;
                 &::before {
                     content: '';
                     position: absolute;
                     inset: 0;
-                    background-color: var(--current-color-dark-bg, rgba(64, 158, 255, 0.2));
-                    border-right: 3px solid var(--current-color, #409eff);
+                    background: linear-gradient(90deg, rgba(44, 122, 123, 0.14), rgba(79, 179, 173, 0.08));
+                    border-left: 4px solid $base-menu-color-active;
+                    border-radius: 14px;
                     pointer-events: none;
                     z-index: 1;
                 }
             }
             .el-submenu.is-active>.el-submenu__title {
-                color: var(--current-color, #409eff) !important;
+                color: $base-menu-color-active !important;
             }
             .el-menu-item:not(.is-active),
             .submenu-title-noDropdown,
@@ -122,55 +132,58 @@
                     transition: background-color 0.2s;
                 }
                 &:hover::before {
-                    background-color: var(--current-color-dark-bg, rgba(64, 158, 255, 0.2));
+                    background-color: rgba(44, 122, 123, 0.1);
+                    border-radius: 14px;
                 }
             }
         }
         // theme-light 浅色主题
         &.theme-light {
-            border-right: 1px solid #e8eaf0;
+            border-right: 0;
             box-shadow: none;
             .el-menu-item,
             .el-submenu__title {
                 color: rgba(0, 0, 0, 0.65);
             }
             .el-menu-item.is-active {
-                color: var(--current-color, #409eff) !important;
+                color: $base-menu-color-active !important;
+                font-weight: 700;
                 position: relative;
                 &::before {
                     content: '';
                     position: absolute;
                     inset: 0;
-                    background-color: var(--current-color-light, #ecf5ff);
-                    border-right: 3px solid var(--current-color, #409eff);
+                    background: linear-gradient(90deg, rgba(44, 122, 123, 0.14), rgba(79, 179, 173, 0.08));
+                    border-left: 4px solid $base-menu-color-active;
+                    border-radius: 14px;
                     pointer-events: none;
                     z-index: 1;
                 }
             }
             .el-submenu.is-active>.el-submenu__title {
-                color: var(--current-color, #409eff) !important;
+                color: $base-menu-color-active !important;
             }
             .el-menu-item:not(.is-active):hover,
             .submenu-title-noDropdown:hover,
             .el-submenu__title:hover {
-                background-color: #f5f7fa !important;
-                color: rgba(0, 0, 0, 0.85) !important;
+                background-color: rgba(44, 122, 123, 0.1) !important;
+                color: #1e3a5f !important;
             }
             .nest-menu .el-submenu>.el-submenu__title,
             .el-submenu .el-menu-item {
-                background-color: #fafafa !important;
+                background-color: rgba(243, 248, 248, 0.82) !important;
                 &:hover {
-                    background-color: #f0f5ff !important;
+                    background-color: rgba(44, 122, 123, 0.1) !important;
                 }
             }
         }
     }
     .hideSidebar {
         .sidebar-container {
-            width: 54px !important;
+            width: 92px !important;
         }
         .main-container {
-            margin-left: 54px;
+            margin-left: 128px;
         }
         .el-menu:not(.el-menu--horizontal) {
             .submenu-title-noDropdown {

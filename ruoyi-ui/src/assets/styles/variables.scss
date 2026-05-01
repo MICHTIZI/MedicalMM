@@ -1,23 +1,23 @@
-// base color（医疗主题辅助色）
-$blue:#165dff;
-$light-blue:#4d7cff;
+// base color（现代医疗诊断平台主题）
+$blue:#1e3a5f;
+$light-blue:#2c7a7b;
 $red:#C03639;
 $pink: #E65D6E;
-$green: #30B08F;
-$tiffany: #4AB7BD;
+$green: #2c7a7b;
+$tiffany: #4fb3ad;
 $yellow:#FEC171;
 $panGreen: #30B08F;
 // 侧栏：白底医疗风（深色/浅色主题共用同一套变量，保证侧栏始终简洁专业）
-$base-menu-color: #333333;
-$base-menu-color-active: #165dff;
+$base-menu-color: #425466;
+$base-menu-color-active: #2c7a7b;
 $base-menu-background: #ffffff;
-$base-logo-title-color: #333333;
-$base-menu-light-color: #333333;
+$base-logo-title-color: #1e3a5f;
+$base-menu-light-color: #425466;
 $base-menu-light-background: #ffffff;
-$base-logo-light-title-color: #333333;
-$base-sub-menu-background: #f5f7fa;
-$base-sub-menu-hover: rgba(22, 93, 255, 0.08);
-$base-sidebar-width: 200px;
+$base-logo-light-title-color: #1e3a5f;
+$base-sub-menu-background: #f3f8f8;
+$base-sub-menu-hover: rgba(44, 122, 123, 0.1);
+$base-sidebar-width: 248px;
 // the :export directive is the magic sauce for webpack
 // https://www.bluematador.com/blog/how-to-share-variables-between-js-and-sass
 :export {

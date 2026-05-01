@@ -130,7 +130,7 @@ export default {
     position: absolute;
     top: 7px;
     right: -3px;
-    background: #f56c6c;
+    background: #d64545;
     color: #fff;
     border-radius: 10px;
     font-size: 10px;
@@ -151,25 +151,25 @@ export default {
   align-items: center;
   justify-content: space-between;
   padding: 10px 14px;
-  background: #f7f9fb;
-  border-bottom: 1px solid #eee;
-  font-size: 13px;
+  background: #f3f8f8;
+  border-bottom: 1px solid rgba(30, 58, 95, 0.08);
+  font-size: 14px;
   font-weight: 600;
-  color: #333;
+  color: #1e3a5f;
 }
 .notice-popover .notice-mark-all {
   font-size: 12px;
-  color: #409EFF;
+  color: #0d4e4f;
   font-weight: normal;
   cursor: pointer;
 }
-.notice-popover .notice-mark-all:hover { color: #2b7cc1; }
+.notice-popover .notice-mark-all:hover { color: #1e3a5f; }
 .notice-popover .notice-loading,
 .notice-popover .notice-empty {
   padding: 24px;
   text-align: center;
-  color: #bbb;
-  font-size: 12px;
+  color: #8a98a8;
+  font-size: 13px;
   line-height: 1.8;
 }
 .notice-popover .notice-item {
@@ -177,20 +177,20 @@ export default {
   align-items: center;
   gap: 8px;
   padding: 10px 14px;
-  border-bottom: 1px solid #f5f5f5;
+  border-bottom: 1px solid rgba(30, 58, 95, 0.06);
   cursor: pointer;
   transition: background 0.15s;
 }
 .notice-popover .notice-item:last-child { border-bottom: none; }
-.notice-popover .notice-item:hover { background: #f7f9fb; }
+.notice-popover .notice-item:hover { background: #f7fbfc; }
 .notice-popover .notice-item.is-read .notice-tag,
 .notice-popover .notice-item.is-read .notice-item-title,
 .notice-popover .notice-item.is-read .notice-item-date { opacity: 0.45; filter: grayscale(1); color: #999; }
 .notice-popover .notice-tag { flex-shrink: 0; }
 .notice-popover .notice-item-title {
   flex: 1;
-  font-size: 12px;
-  color: #333;
+  font-size: 13px;
+  color: #1f2f3f;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -198,7 +198,7 @@ export default {
 .notice-popover .notice-item-date {
   flex-shrink: 0;
   font-size: 11px;
-  color: #bbb;
+  color: #8a98a8;
 }
 ::v-deep .notice-preview-dialog {
   .el-dialog__body { padding: 0 20px 20px; }
@@ -223,7 +223,7 @@ export default {
     word-break: break-word;
     img { max-width: 100%; border-radius: 4px; }
     p { margin: 0 0 1em; }
-    a { color: #409EFF; text-decoration: underline; }
+    a { color: #2c7a7b; text-decoration: underline; }
   }
 }
 </style>

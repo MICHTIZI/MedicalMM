@@ -1,10 +1,18 @@
 <template>
   <div class="login medical-login">
+    <div class="medical-login__decor medical-login__decor--left" aria-hidden="true"></div>
+    <div class="medical-login__decor medical-login__decor--right" aria-hidden="true"></div>
+
     <div class="medical-login__panel">
       <div class="medical-login__brand">
-        <div class="medical-login__mark" aria-hidden="true" />
+        <div class="medical-login__icon" aria-hidden="true">
+          <svg viewBox="0 0 64 64" role="img">
+            <path d="M31.9 8.2c-3.9 2.7-6.1 7.1-6.1 12.2v5.9c0 2.9-1.6 5.6-4.1 7.1l-5.1 3c-5.8 3.4-8.8 10-7.4 16.6.4 2 2.5 3.2 4.4 2.6 8.1-2.4 13.3-9 13.3-17.4V21.7c0-3.4 1.4-6.6 3.9-8.9l1.1-1 1.1 1c2.5 2.3 3.9 5.5 3.9 8.9v16.5c0 8.4 5.2 15 13.3 17.4 1.9.6 4-.6 4.4-2.6 1.4-6.6-1.6-13.2-7.4-16.6l-5.1-3c-2.5-1.5-4.1-4.2-4.1-7.1v-5.9c0-5.1-2.2-9.5-6.1-12.2L32 8l-.1.2z" fill="currentColor" opacity=".18"/>
+            <path d="M30 18h4v10h10v4H34v10h-4V32H20v-4h10V18z" fill="currentColor"/>
+          </svg>
+        </div>
         <div class="medical-login__brand-text">
-          <span class="medical-login__brand-title">{{ title }}</span>
+          <span class="medical-login__brand-title">肺炎辅助诊断系统</span>
           <span class="medical-login__brand-sub">{{ brandSub }}</span>
         </div>
       </div>
@@ -33,12 +41,11 @@
                 <svg-icon slot="prefix" icon-class="password" class="el-input__icon input-icon" />
               </el-input>
             </el-form-item>
-            <el-form-item v-if="captchaEnabled" prop="code">
+            <el-form-item v-if="captchaEnabled" prop="code" class="medical-login__captcha">
               <el-input
                 v-model="loginForm.code"
                 auto-complete="off"
                 placeholder="验证码"
-                style="width: 63%"
                 @keyup.enter.native="handleLogin"
               >
                 <svg-icon slot="prefix" icon-class="validCode" class="el-input__icon input-icon" />
@@ -47,7 +54,9 @@
                 <img :src="codeUrl" class="login-code-img" @click="getCode">
               </div>
             </el-form-item>
-            <el-checkbox v-model="loginForm.rememberMe" class="medical-login__remember">记住密码</el-checkbox>
+            <div class="medical-login__options">
+              <el-checkbox v-model="loginForm.rememberMe" class="medical-login__remember">记住密码</el-checkbox>
+            </div>
             <el-form-item class="medical-login__submit-wrap">
               <el-button
                 :loading="loading"
@@ -92,12 +101,11 @@
                 <svg-icon slot="prefix" icon-class="password" class="el-input__icon input-icon" />
               </el-input>
             </el-form-item>
-            <el-form-item v-if="captchaEnabled" prop="code">
+            <el-form-item v-if="captchaEnabled" prop="code" class="medical-login__captcha">
               <el-input
                 v-model="registerForm.code"
                 auto-complete="off"
                 placeholder="验证码"
-                style="width: 63%"
                 @keyup.enter.native="handleRegister"
               >
                 <svg-icon slot="prefix" icon-class="validCode" class="el-input__icon input-icon" />
@@ -324,90 +332,203 @@ export default {
   align-items: center;
   height: 100%;
   min-height: 100vh;
-  background: #ffffff;
+  position: relative;
+  overflow: hidden;
+  padding: 40px 18px 72px;
+  background:
+    radial-gradient(circle at 18% 18%, rgba(67, 182, 165, 0.2), transparent 26%),
+    radial-gradient(circle at 82% 24%, rgba(30, 58, 95, 0.12), transparent 28%),
+    linear-gradient(135deg, #e8f7f5 0%, #f8fcfc 48%, #ffffff 100%);
+}
+
+.medical-login::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(13, 78, 79, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(13, 78, 79, 0.04) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.55), transparent 72%);
+  pointer-events: none;
+}
+
+.medical-login__decor {
+  position: absolute;
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  border: 42px solid rgba(13, 78, 79, 0.06);
+  pointer-events: none;
+}
+
+.medical-login__decor--left {
+  left: -96px;
+  bottom: 70px;
+}
+
+.medical-login__decor--right {
+  top: 72px;
+  right: -88px;
+  border-color: rgba(67, 182, 165, 0.09);
 }
 
 .medical-login__panel {
   width: 100%;
-  max-width: 440px;
-  padding: 36px 32px 28px;
-  margin: 24px 16px 56px;
-  background: #ffffff;
-  border: 1px solid #e8ecf2;
-  border-radius: 8px;
+  max-width: 460px;
+  padding: 40px 38px 34px;
+  margin: 0;
+  position: relative;
+  z-index: 1;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(30, 58, 95, 0.08);
+  border-radius: 24px;
+  box-shadow: 0 28px 70px rgba(30, 58, 95, 0.14);
+  backdrop-filter: blur(16px);
   box-sizing: border-box;
 }
 
 .medical-login__brand {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  margin-bottom: 20px;
+  text-align: center;
+  margin-bottom: 24px;
 }
 
-.medical-login__mark {
-  width: 4px;
-  height: 40px;
-  border-radius: 2px;
-  background: #165dff;
-  margin-right: 14px;
-  flex-shrink: 0;
+.medical-login__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 68px;
+  height: 68px;
+  margin-bottom: 16px;
+  color: #0d4e4f;
+  border-radius: 22px;
+  background: linear-gradient(135deg, rgba(13, 78, 79, 0.12), rgba(67, 182, 165, 0.18));
+  box-shadow: 0 14px 30px rgba(13, 78, 79, 0.14);
+}
+
+.medical-login__icon svg {
+  width: 42px;
+  height: 42px;
 }
 
 .medical-login__brand-text {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  gap: 8px;
 }
 
 .medical-login__brand-title {
-  font-size: 20px;
-  font-weight: 600;
-  color: #333333;
+  font-size: 28px;
+  font-weight: 800;
+  color: #1e3a5f;
   letter-spacing: 0.02em;
 }
 
 .medical-login__brand-sub {
-  font-size: 13px;
-  color: #666666;
+  font-size: 14px;
+  color: #66788a;
 }
 
 .medical-login__tabs {
   ::v-deep .el-tabs__header {
-    margin-bottom: 18px;
+    margin-bottom: 22px;
   }
+
+  ::v-deep .el-tabs__nav-wrap::after {
+    height: 1px;
+    background-color: rgba(30, 58, 95, 0.08);
+  }
+
   ::v-deep .el-tabs__item {
-    font-size: 15px;
-    color: #666666;
+    height: 42px;
+    line-height: 42px;
+    font-size: 16px;
+    color: #66788a;
   }
+
   ::v-deep .el-tabs__item.is-active {
-    color: #165dff;
-    font-weight: 600;
+    color: #0d4e4f;
+    font-weight: 700;
   }
+
   ::v-deep .el-tabs__active-bar {
-    background-color: #165dff;
+    height: 3px;
+    border-radius: 999px;
+    background-color: #0d4e4f;
   }
 }
 
 .login-form {
   width: 100%;
   padding: 0;
+
+  ::v-deep .el-form-item {
+    margin-bottom: 20px;
+  }
+
   .el-input {
-    height: 40px;
+    height: 50px;
+
     input {
-      height: 40px;
-      border-radius: 5px;
+      height: 50px;
+      padding-left: 42px;
+      border-radius: 15px;
+      border-color: rgba(30, 58, 95, 0.14);
+      background: #fbfefe;
+      color: #1f2f3f;
+      font-size: 15px;
+      transition: border-color .2s, box-shadow .2s, background .2s;
+
+      &:focus {
+        border-color: #0d4e4f;
+        background: #ffffff;
+        box-shadow: 0 0 0 4px rgba(13, 78, 79, 0.08);
+      }
     }
   }
+
   .input-icon {
-    height: 40px;
-    width: 14px;
-    margin-left: 2px;
+    height: 50px;
+    width: 16px;
+    margin-left: 8px;
+    color: #7890a4;
   }
 }
 
+.medical-login__captcha {
+  ::v-deep .el-form-item__content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .el-input {
+    flex: 1;
+  }
+}
+
+.medical-login__options {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: -4px 0 22px;
+}
+
 .medical-login__remember {
-  margin: 0 0 22px;
-  color: #666666;
+  color: #66788a;
+
+  ::v-deep .el-checkbox__input.is-checked .el-checkbox__inner {
+    background-color: #0d4e4f;
+    border-color: #0d4e4f;
+  }
+
+  ::v-deep .el-checkbox__input.is-checked + .el-checkbox__label {
+    color: #0d4e4f;
+  }
 }
 
 .medical-login__submit-wrap {
@@ -417,23 +538,41 @@ export default {
 
 .medical-login__submit {
   width: 100%;
-  border-radius: 5px;
+  height: 50px;
+  border-radius: 15px;
+  border-color: #1e3a5f;
+  background: linear-gradient(135deg, #1e3a5f 0%, #0d4e4f 100%);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  box-shadow: 0 14px 30px rgba(30, 58, 95, 0.22);
+
+  &:hover,
+  &:focus {
+    border-color: #0d4e4f;
+    background: linear-gradient(135deg, #244b78 0%, #126466 100%);
+    box-shadow: 0 16px 34px rgba(30, 58, 95, 0.26);
+  }
 }
 
 .login-code {
-  width: 33%;
-  height: 40px;
-  float: right;
+  width: 120px;
+  height: 50px;
+  flex-shrink: 0;
+
   img {
     cursor: pointer;
     vertical-align: middle;
-    border-radius: 4px;
-    border: 1px solid #e8ecf2;
+    border-radius: 14px;
+    border: 1px solid rgba(30, 58, 95, 0.12);
+    background: #ffffff;
   }
 }
 
 .login-code-img {
-  height: 40px;
+  width: 100%;
+  height: 50px;
+  object-fit: cover;
 }
 
 .el-login-footer {
@@ -443,10 +582,34 @@ export default {
   bottom: 0;
   width: 100%;
   text-align: center;
-  color: #666666;
+  color: #7890a4;
   font-size: 12px;
   letter-spacing: 0.02em;
-  background: #ffffff;
-  border-top: 1px solid #f0f2f5;
+  background: transparent;
+}
+
+@media screen and (max-width: 520px) {
+  .medical-login {
+    padding: 28px 14px 62px;
+  }
+
+  .medical-login__panel {
+    padding: 32px 22px 28px;
+    border-radius: 20px;
+  }
+
+  .medical-login__brand-title {
+    font-size: 24px;
+  }
+
+  .medical-login__captcha {
+    ::v-deep .el-form-item__content {
+      gap: 8px;
+    }
+  }
+
+  .login-code {
+    width: 104px;
+  }
 }
 </style>

@@ -9,7 +9,10 @@ body {
     -moz-osx-font-smoothing: grayscale;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
-    font-family: Helvetica Neue, Helvetica, PingFang SC, Hiragino Sans GB, Microsoft YaHei, Arial, sans-serif;
+    font-family: PingFang SC, Microsoft YaHei, Helvetica Neue, Helvetica, Arial, sans-serif;
+    font-size: 15px;
+    color: #1f2f3f;
+    background: #eef5f7;
 }
 
 label {
@@ -96,29 +99,33 @@ div:focus {
 }
 
 aside {
-    background: #eef1f6;
+    background: #eef7f7;
     padding: 8px 24px;
     margin-bottom: 20px;
-    border-radius: 2px;
+    border-radius: 14px;
     display: block;
     line-height: 32px;
     font-size: 16px;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+    font-family: PingFang SC, Microsoft YaHei, Helvetica Neue, Helvetica, Arial, sans-serif;
     color: #2c3e50;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     a {
-        color: #337ab7;
+        color: #2c7a7b;
         cursor: pointer;
         &:hover {
-            color: rgb(32, 160, 255);
+            color: #1e3a5f;
         }
     }
 }
 
 //main-container全局样式
 .app-container {
-    padding: 20px;
+    padding: 24px;
+    background: #ffffff;
+    border: 1px solid rgba(30, 58, 95, 0.08);
+    border-radius: 22px;
+    box-shadow: 0 16px 40px rgba(30, 58, 95, 0.08);
 }
 
 .components-container {
@@ -138,11 +145,11 @@ aside {
     text-align: right;
     padding-right: 20px;
     transition: 600ms ease position;
-    background: #f5f7fa;
-    border-bottom: 1px solid #e8ecf2;
+    background: #f7fbfc;
+    border-bottom: 1px solid rgba(30, 58, 95, 0.08);
     .subtitle {
         font-size: 20px;
-        color: #333333;
+        color: #1e3a5f;
     }
     &.draft {
         background: #d0d0d0;
@@ -154,10 +161,10 @@ aside {
 
 .link-type,
 .link-type:focus {
-    color: #165dff;
+    color: #2c7a7b;
     cursor: pointer;
     &:hover {
-        color: #0f4cd9;
+        color: #1e3a5f;
     }
 }
 

@@ -46,11 +46,14 @@ export default {
 
 <style lang="scss" scoped>
 .app-main {
-  /* 50= navbar  50  */
-  min-height: calc(100vh - 50px);
+  min-height: calc(100vh - 72px);
   width: 100%;
   position: relative;
   overflow: hidden;
+  padding: 22px 26px;
+  background:
+    radial-gradient(circle at top right, rgba(67, 182, 165, 0.12), transparent 32%),
+    linear-gradient(180deg, #f7fbfc 0%, #eef5f7 100%);
 
   &:fullscreen,
   &:-webkit-full-screen,
@@ -64,7 +67,7 @@ export default {
 .fixed-header + .app-main {
   overflow-y: auto;
   scrollbar-gutter: auto;
-  height: calc(100vh - 50px);
+  height: calc(100vh - 72px);
   min-height: 0px;
 }
 
@@ -73,18 +76,17 @@ export default {
 }
 
 .fixed-header + .app-main {
-  margin-top: 50px;
+  margin-top: 72px;
 }
 
 .hasTagsView {
   .app-main {
-    /* 84 = navbar + tags-view = 50 + 34 */
-    min-height: calc(100vh - 84px);
+    min-height: calc(100vh - 116px);
   }
 
   .fixed-header + .app-main {
-    margin-top: 84px;
-    height: calc(100vh - 84px);
+    margin-top: 116px;
+    height: calc(100vh - 116px);
     min-height: 0px;
   }
 }
@@ -109,15 +111,15 @@ export default {
     .fixed-header + .app-main {
       padding-bottom: max(17px, calc(constant(safe-area-inset-bottom) + 10px));
       padding-bottom: max(17px, calc(env(safe-area-inset-bottom) + 10px));
-      height: calc(100svh - 50px);
-      height: calc(100dvh - 50px);
+      height: calc(100svh - 72px);
+      height: calc(100dvh - 72px);
     }
 
     .hasTagsView .fixed-header + .app-main {
       padding-bottom: max(17px, calc(constant(safe-area-inset-bottom) + 10px));
       padding-bottom: max(17px, calc(env(safe-area-inset-bottom) + 10px));
-      height: calc(100svh - 84px);
-      height: calc(100dvh - 84px);
+      height: calc(100svh - 116px);
+      height: calc(100dvh - 116px);
     }
   }
 }
@@ -130,11 +132,11 @@ export default {
 }
 
 ::-webkit-scrollbar-track {
-  background-color: #f1f1f1;
+  background-color: #edf5f6;
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: #c0c0c0;
-  border-radius: 3px;
+  background-color: rgba(30, 58, 95, 0.28);
+  border-radius: 8px;
 }
 </style>

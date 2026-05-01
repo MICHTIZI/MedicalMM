@@ -368,19 +368,21 @@ export default {
 
 <style lang="scss" scoped>
 .tags-view-container {
-  height: 34px;
+  height: 44px;
   width: 100%;
-  background: #fff;
-  border-bottom: 1px solid #e8ecf2;
+  background: rgba(255, 255, 255, 0.92);
+  border-bottom: 1px solid rgba(30, 58, 95, 0.08);
+  box-shadow: 0 8px 22px rgba(30, 58, 95, 0.06);
+  backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
 
   $btn-width: 28px;
-  $btn-color: #71717a;
-  $btn-hover-bg: #f0f2f5;
-  $btn-hover-color: #303133;
-  $btn-disabled-color: #c0c4cc;
-  $divider: 1px solid #d8dce5;
+  $btn-color: #6b7b8f;
+  $btn-hover-bg: #eef7f7;
+  $btn-hover-color: #1e3a5f;
+  $btn-disabled-color: #b8c3cf;
+  $divider: 1px solid rgba(30, 58, 95, 0.08);
 
   .tags-nav-btn {
     flex-shrink: 0;
@@ -388,7 +390,7 @@ export default {
     align-items: center;
     justify-content: center;
     width: $btn-width;
-    height: 34px;
+    height: 44px;
     cursor: pointer;
     color: $btn-color;
     font-size: 13px;
@@ -424,13 +426,13 @@ export default {
       cursor: pointer;
       height: 26px;
       line-height: 26px;
-      border: 1px solid #e8ecf2;
-      color: #666666;
+      border: 1px solid rgba(30, 58, 95, 0.1);
+      color: #4f6074;
       background: #fff;
-      padding: 0 8px;
-      font-size: 12px;
+      padding: 0 10px;
+      font-size: 13px;
       margin-left: 5px;
-      border-radius: 3px;
+      border-radius: 999px;
 
       &:first-of-type {
         margin-left: 6px;
@@ -439,12 +441,12 @@ export default {
         margin-right: 15px;
       }
       &.active {
-        background-color: #ecf3ff;
-        color: #165dff;
-        border-color: #165dff;
+        background-color: #eaf4f4;
+        color: #0d4e4f;
+        border-color: rgba(13, 78, 79, 0.28);
         &::before {
           content: '';
-          background: #165dff;
+          background: #0d4e4f;
           display: inline-block;
           width: 8px;
           height: 8px;
@@ -471,7 +473,7 @@ export default {
     align-items: center;
     justify-content: center;
     width: $btn-width;
-    height: 34px;
+    height: 44px;
     cursor: pointer;
     color: $btn-color;
     font-size: 13px;
@@ -496,11 +498,11 @@ export default {
     position: fixed;
     list-style-type: none;
     padding: 5px 0;
-    border-radius: 4px;
-    font-size: 12px;
+    border-radius: 12px;
+    font-size: 13px;
     font-weight: 400;
-    color: #333;
-    box-shadow: 2px 2px 3px 0 rgba(0, 0, 0, .3);
+    color: #1f2f3f;
+    box-shadow: 0 14px 34px rgba(30, 58, 95, .16);
 
     li {
       margin: 0;
@@ -564,14 +566,14 @@ export default {
 
 .main-container.fullscreen-mode .app-main {
   position: fixed;
-  top: 34px;
+  top: 44px;
   left: 0;
   right: 0;
   bottom: 0;
   margin: 0 !important;
   padding: 0 !important;
-  height: calc(100vh - 34px) !important;
-  min-height: calc(100vh - 34px) !important;
+  height: calc(100vh - 44px) !important;
+  min-height: calc(100vh - 44px) !important;
   overflow: auto;
 }
 </style>

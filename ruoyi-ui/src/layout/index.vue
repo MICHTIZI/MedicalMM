@@ -1,5 +1,5 @@
 <template>
-  <div :class="classObj" class="app-wrapper" :style="{'--current-color': theme, '--current-color-light': theme + '1a', '--current-color-dark-bg': theme + '33'}">
+  <div :class="classObj" class="app-wrapper medical-layout" :style="{'--current-color': theme, '--current-color-light': theme + '1a', '--current-color-dark-bg': theme + '33'}">
     <div v-if="device==='mobile'&&sidebar.opened" class="drawer-bg" @click="handleClickOutside"/>
     <sidebar v-if="!sidebar.hide" class="sidebar-container"/>
     <div :class="{hasTagsView:needTagsView,sidebarHide:sidebar.hide}" class="main-container">
@@ -70,6 +70,8 @@ export default {
     position: relative;
     height: 100%;
     width: 100%;
+    min-width: 1180px;
+    background: #eef5f7;
 
     &.mobile.openSidebar {
       position: fixed;
@@ -96,13 +98,14 @@ export default {
     position: fixed;
     top: 0;
     right: 0;
-    z-index: 9;
-    width: calc(100% - #{$base-sidebar-width});
+    left: 0;
+    z-index: 1000;
+    width: 100%;
     transition: width 0.28s;
   }
 
   .hideSidebar .fixed-header {
-    width: calc(100% - 54px);
+    width: 100%;
   }
 
   .sidebarHide .fixed-header {
@@ -111,5 +114,11 @@ export default {
 
   .mobile .fixed-header {
     width: 100%;
+  }
+
+  @media screen and (max-width: 991px) {
+    .app-wrapper {
+      min-width: 0;
+    }
   }
 </style>

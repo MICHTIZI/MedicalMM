@@ -167,27 +167,76 @@ export default {
 </script>
 
 <style lang="scss">
-.topmenu-container.el-menu--horizontal > .el-menu-item {
-  float: left;
-  height: 50px !important;
-  line-height: 50px !important;
-  color: #303133 !important;
-  padding: 0 5px !important;
-  margin: 0 10px !important;
+.topmenu-container.el-menu--horizontal {
+  display: flex;
+  align-items: center;
+  height: 72px;
+  background: transparent !important;
+  border-bottom: none !important;
+  overflow: hidden;
 }
 
-.topmenu-container.el-menu--horizontal > .el-menu-item.is-active, .el-menu--horizontal > .el-submenu.is-active .el-submenu__title {
-  border-bottom: 2px solid #{'var(--theme)'} !important;
-  color: #303133;
+.topmenu-container.el-menu--horizontal > .el-menu-item {
+  float: none;
+  height: 42px !important;
+  line-height: 42px !important;
+  color: rgba(255, 255, 255, 0.82) !important;
+  padding: 0 16px !important;
+  margin: 0 4px !important;
+  border-bottom: none !important;
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 600;
+  transition: background .2s, color .2s, transform .2s;
+}
+
+.topmenu-container.el-menu--horizontal > .el-menu-item:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: #ffffff !important;
+}
+
+.topmenu-container.el-menu--horizontal > .el-menu-item.is-active,
+.topmenu-container.el-menu--horizontal > .el-submenu.is-active .el-submenu__title {
+  background: #ffffff !important;
+  color: #0d4e4f !important;
+  border-bottom: none !important;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
 }
 
 /* submenu item */
 .topmenu-container.el-menu--horizontal > .el-submenu .el-submenu__title {
-  float: left;
-  height: 50px !important;
-  line-height: 50px !important;
-  color: #303133 !important;
-  padding: 0 5px !important;
-  margin: 0 10px !important;
+  float: none;
+  height: 42px !important;
+  line-height: 42px !important;
+  color: rgba(255, 255, 255, 0.82) !important;
+  padding: 0 16px !important;
+  margin: 0 4px !important;
+  border-bottom: none !important;
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.topmenu-container.el-menu--horizontal > .el-submenu .el-submenu__title:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: #ffffff !important;
+}
+
+.el-menu--horizontal .el-menu--popup {
+  border-radius: 14px;
+  padding: 8px;
+  box-shadow: 0 14px 34px rgba(30, 58, 95, 0.16);
+}
+
+.el-menu--horizontal .el-menu--popup .el-menu-item {
+  height: 40px;
+  line-height: 40px;
+  border-radius: 10px;
+  color: #425466;
+}
+
+.el-menu--horizontal .el-menu--popup .el-menu-item:hover {
+  background: #eef7f7 !important;
+  color: #0d4e4f !important;
 }
 </style>

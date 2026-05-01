@@ -1,13 +1,18 @@
 <template>
-  <div class="navbar" :class="'nav' + navType">
-    <hamburger id="hamburger-container" :is-active="sidebar.opened" class="hamburger-container" @toggleClick="toggleSideBar" />
-
-    <breadcrumb v-if="navType == 1" id="breadcrumb-container" class="breadcrumb-container" />
-    <top-nav v-if="navType == 2" id="topmenu-container" class="topmenu-container" />
-    <template v-if="navType == 3">
+  <div class="navbar medical-navbar" :class="'nav' + navType">
+    <hamburger v-if="false" id="hamburger-container" :is-active="sidebar.opened" class="hamburger-container" @toggleClick="toggleSideBar" />
+    <breadcrumb v-if="false" id="breadcrumb-container" class="breadcrumb-container" />
+    <top-bar v-if="false" id="topbar-container" class="topbar-container" />
+    <div class="medical-navbar__brand">
       <logo v-show="showLogo" :collapse="false"></logo>
-      <top-bar id="topbar-container" class="topbar-container" />
-    </template>
+      <div class="medical-navbar__meta">
+        <span class="medical-navbar__eyebrow">Medical Diagnosis Platform</span>
+        <span class="medical-navbar__title">智能医疗辅助诊断平台</span>
+      </div>
+    </div>
+
+    <top-nav id="topmenu-container" class="topmenu-container medical-primary-menu" />
+
     <div class="right-menu">
       <template v-if="device!=='mobile'">
         <search id="header-search" class="right-menu-item" />
@@ -124,120 +129,177 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.navbar.nav3 {
-  .hamburger-container {
-    display: none !important;
-  }
-}
-
 .navbar {
-  height: 50px;
+  height: 72px;
   overflow: hidden;
   position: relative;
-  background: #fff;
-  border-bottom: 1px solid #e8ecf2;
-  box-shadow: none;
+  background: linear-gradient(135deg, #1e3a5f 0%, #0d4e4f 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 10px 30px rgba(13, 78, 79, 0.18);
   display: flex;
   align-items: center;
-  // padding: 0 8px;
+  padding: 0 24px;
   box-sizing: border-box;
 
-  .hamburger-container {
-    line-height: 46px;
-    height: 100%;
-    cursor: pointer;
-    transition: background .3s;
-    -webkit-tap-highlight-color:transparent;
+  .medical-navbar__brand {
     display: flex;
     align-items: center;
+    width: 310px;
     flex-shrink: 0;
-    margin-right: 8px;
-
-    &:hover {
-      background: rgba(22, 93, 255, 0.06);
-    }
+    min-width: 0;
   }
 
-  .breadcrumb-container {
-    flex-shrink: 0;
+  .medical-navbar__meta {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    margin-left: 14px;
+    line-height: 1.25;
+    color: #ffffff;
+    min-width: 0;
+  }
+
+  .medical-navbar__eyebrow {
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.62);
+  }
+
+  .medical-navbar__title {
+    margin-top: 3px;
+    font-size: 19px;
+    font-weight: 700;
+    white-space: nowrap;
   }
 
   .topmenu-container {
-    position: absolute;
-    left: 50px;
-  }
-
-  .topbar-container {
     flex: 1;
     min-width: 0;
-    display: flex;
-    align-items: center;
-    overflow: hidden;
     margin-left: 8px;
   }
 
   .right-menu {
     height: 100%;
-    line-height: 50px;
+    line-height: 72px;
     display: flex;
     align-items: center;
-    margin-left: auto;
+    gap: 8px;
+    margin-left: 20px;
+    flex-shrink: 0;
 
     &:focus {
       outline: none;
     }
 
     .right-menu-item {
-      display: inline-block;
-      padding: 0 8px;
-      height: 100%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 10px;
+      height: 40px;
+      min-width: 40px;
       font-size: 18px;
-      color: #4a4f59;
+      color: rgba(255, 255, 255, 0.86);
+      border-radius: 14px;
       vertical-align: text-bottom;
 
       &.hover-effect {
         cursor: pointer;
-        transition: background .3s;
+        transition: background .2s, color .2s, transform .2s;
 
         &:hover {
-          background: rgba(22, 93, 255, 0.06);
-          color: #165dff;
+          background: rgba(255, 255, 255, 0.14);
+          color: #ffffff;
+          transform: translateY(-1px);
         }
       }
     }
 
     .avatar-container {
-      margin-right: 0px;
-      padding-right: 0px;
+      padding: 0 4px 0 10px;
 
       .avatar-wrapper {
-        margin-top: 10px;
-        right: 8px;
-        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        height: 40px;
 
         .user-avatar {
           cursor: pointer;
-          width: 30px;
-          height: 30px;
+          width: 34px;
+          height: 34px;
           border-radius: 50%;
+          border: 2px solid rgba(255, 255, 255, 0.72);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
         }
 
         .user-nickname{
-          position: relative;
-          bottom: 10px;
-          left: 2px;
-          font-size: 14px;
-          font-weight: bold;
+          max-width: 96px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          font-size: 15px;
+          font-weight: 600;
+          color: #ffffff;
         }
 
         .el-icon-caret-bottom {
           cursor: pointer;
-          position: absolute;
-          right: -20px;
-          top: 25px;
           font-size: 12px;
         }
       }
+    }
+  }
+}
+
+::v-deep .sidebar-logo-container {
+  height: 48px;
+  line-height: 48px;
+  background: transparent !important;
+  border-bottom: none;
+  text-align: left;
+
+  .sidebar-logo-link {
+    display: flex;
+    align-items: center;
+    width: auto;
+  }
+
+  .sidebar-logo {
+    width: 42px !important;
+    height: 42px !important;
+    margin-right: 0 !important;
+    padding: 6px;
+    background: rgba(255, 255, 255, 0.16);
+    border-radius: 14px;
+  }
+
+  .sidebar-title {
+    display: none !important;
+  }
+}
+
+@media screen and (max-width: 991px) {
+  .navbar {
+    height: auto;
+    min-height: 72px;
+    flex-wrap: wrap;
+    padding: 12px 14px;
+
+    .medical-navbar__brand {
+      width: auto;
+      flex: 1;
+    }
+
+    .topmenu-container {
+      order: 3;
+      flex-basis: 100%;
+      margin: 10px 0 0;
+    }
+
+    .right-menu {
+      margin-left: 8px;
     }
   }
 }

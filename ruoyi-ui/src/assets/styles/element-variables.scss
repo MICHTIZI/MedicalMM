@@ -6,16 +6,19 @@
 
 /* theme color */
 
-$--color-primary: #165dff;
-$--color-success: #13ce66;
+$--color-primary: #1e3a5f;
+$--color-success: #2c7a7b;
+$--color-info: #607182;
 $--color-warning: #ffba00;
 $--color-danger: #ff4949;
-// $--color-info: #1E1E1E;
 $--button-font-weight: 400;
+$--border-radius-base: 8px;
+$--border-radius-small: 6px;
+$--button-border-radius: 8px;
 // $--color-text-regular: #1f2d3d;
-$--border-color-light: #dfe4ed;
-$--border-color-lighter: #e6ebf5;
-$--table-border: 1px solid #dfe6ec;
+$--border-color-light: #d9e4e8;
+$--border-color-lighter: #edf3f5;
+$--table-border: 1px solid #e5eef0;
 
 /* icon font path, required */
 
