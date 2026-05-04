@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.emr.mapper.MedicalRecordMapper">
+
+    <resultMap id="MedicalRecordResult" type="com.ruoyi.emr.domain.MedicalRecord">
+        <id property="recordId" column="record_id" />
+        <result property="patientId" column="patient_id" />
+        <result property="patientName" column="patient_name" />
+        <result property="chiefComplaint" column="chief_complaint" />
+        <result property="presentHistory" column="present_history" />
+        <result property="pastHistory" column="past_history" />
+        <result property="physicalExam" column="physical_exam" />
+        <result property="initialDiagnosis" column="initial_diagnosis" />
+        <result property="operateDoctorId" column="operate_doctor_id" />
+        <result property="operateDoctor" column="operate_doctor" />
+        <result property="imageId" column="image_id" />
+        <result property="imagePath" column="image_path" />
+        <result property="aiResultPath" column="ai_result_path" />
+        <result property="createBy" column="create_by" />
+        <result property="createTime" column="create_time" />
+        <result property="updateBy" column="update_by" />
+        <result property="updateTime" column="update_time" />
+        <result property="remark" column="remark" />
+    </resultMap>
+
+    <sql id="selectMedicalRecordVo">
+        SELECT r.record_id, r.patient_id, p.patient_name,
+               r.chief_complaint, r.present_history, r.past_history, r.physical_exam, r.initial_diagnosis,
+               r.operate_doctor_id, r.operate_doctor, r.image_id, r.image_path, r.ai_result_path,
+               r.create_by, r.create_time, r.update_by, r.update_time, r.remark
+        FROM medical_record r
+        LEFT JOIN medical_patient p ON p.patient_id = r.patient_id
+    </sql>
+
+    <select id="selectMedicalRecordList" parameterType="com.ruoyi.emr.domain.MedicalRecord" resultMap="MedicalRecordResult">
+        <include refid="selectMedicalRecordVo" />
+        <where>
+            <if test="patientId != null">
+                AND r.patient_id = #{patientId}
+            </if>
+            <if test="patientName != null and patientName != ''">
+                AND p.patient_name LIKE CONCAT('%', #{patientName}, '%')
+            </if>
+            <if test="operateDoctorId != null">
+                AND r.operate_doctor_id = #{operateDoctorId}
+            </if>
+            <if test="operateDoctor != null and operateDoctor != ''">
+                AND r.operate_doctor LIKE CONCAT('%', #{operateDoctor}, '%')
+            </if>
+        </where>
+        ORDER BY r.create_time DESC, r.record_id DESC
+    </select>
+
+    <select id="selectMedicalRecordByRecordId" parameterType="Long" resultMap="MedicalRecordResult">
+        <include refid="selectMedicalRecordVo" />
+        WHERE r.record_id = #{recordId}
+    </select>
+
+    <select id="selectPatientById" parameterType="Long" resultType="com.ruoyi.emr.domain.MedicalPatient">
+        SELECT patient_id AS patientId, patient_name AS patientName,
+               attending_doctor_id AS attendingDoctorId, attending_doctor AS attendingDoctor
+        FROM medical_patient
+        WHERE patient_id = #{patientId}
+    </select>
+
+    <select id="selectPatientOptions" parameterType="com.ruoyi.emr.domain.MedicalPatient" resultType="com.ruoyi.emr.domain.MedicalPatient">
+        SELECT patient_id AS patientId, patient_name AS patientName,
+               attending_doctor_id AS attendingDoctorId, attending_doctor AS attendingDoctor
+        FROM medical_patient
+        <where>
+            <if test="patientName != null and patientName != ''">
+                AND patient_name LIKE CONCAT('%', #{patientName}, '%')
+            </if>
+            <if test="attendingDoctorId != null">
+                AND attending_doctor_id = #{attendingDoctorId}
+            </if>
+        </where>
+        ORDER BY create_time DESC, patient_id DESC
+        LIMIT 100
+    </select>
+
+    <select id="selectXrayById" parameterType="Long" resultType="com.ruoyi.emr.domain.vo.XrayOptionVo">
+        SELECT id, image_path AS imagePath, image_name AS imageName
+        FROM chest_xray
+        WHERE id = #{imageId}
+    </select>
+
+    <select id="selectXrayOptions" resultType="com.ruoyi.emr.domain.vo.XrayOptionVo">
+        SELECT id, image_path AS imagePath, image_name AS imageName
+        FROM chest_xray
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (image_name LIKE CONCAT('%', #{keyword}, '%') OR image_path LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+        ORDER BY create_time DESC, id DESC
+        LIMIT 100
+    </select>
+
+    <select id="countImageUsed" resultType="int">
+        SELECT COUNT(1)
+        FROM medical_record
+        WHERE image_id = #{imageId}
+        <if test="recordId != null">
+            AND record_id != #{recordId}
+        </if>
+    </select>
+
+    <insert id="insertMedicalRecord" parameterType="com.ruoyi.emr.domain.MedicalRecord" useGeneratedKeys="true" keyProperty="recordId">
+        INSERT INTO medical_record
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            patient_id,
+            <if test="chiefComplaint != null">chief_complaint,</if>
+            <if test="presentHistory != null">present_history,</if>
+            <if test="pastHistory != null">past_history,</if>
+            <if test="physicalExam != null">physical_exam,</if>
+            <if test="initialDiagnosis != null">initial_diagnosis,</if>
+            operate_doctor_id, operate_doctor,
+            <if test="imageId != null">image_id,</if>
+            <if test="imagePath != null">image_path,</if>
+            <if test="aiResultPath != null">ai_result_path,</if>
+            <if test="createBy != null">create_by,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="remark != null">remark,</if>
+        </trim>
+        <trim prefix="VALUES (" suffix=")" suffixOverrides=",">
+            #{patientId},
+            <if test="chiefComplaint != null">#{chiefComplaint},</if>
+            <if test="presentHistory != null">#{presentHistory},</if>
+            <if test="pastHistory != null">#{pastHistory},</if>
+            <if test="physicalExam != null">#{physicalExam},</if>
+            <if test="initialDiagnosis != null">#{initialDiagnosis},</if>
+            #{operateDoctorId}, #{operateDoctor},
+            <if test="imageId != null">#{imageId},</if>
+            <if test="imagePath != null">#{imagePath},</if>
+            <if test="aiResultPath != null">#{aiResultPath},</if>
+            <if test="createBy != null">#{createBy},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="remark != null">#{remark},</if>
+        </trim>
+    </insert>
+
+    <update id="updateMedicalRecord" parameterType="com.ruoyi.emr.domain.MedicalRecord">
+        UPDATE medical_record
+        <trim prefix="SET" suffixOverrides=",">
+            patient_id = #{patientId},
+            <if test="chiefComplaint != null">chief_complaint = #{chiefComplaint},</if>
+            <if test="presentHistory != null">present_history = #{presentHistory},</if>
+            <if test="pastHistory != null">past_history = #{pastHistory},</if>
+            <if test="physicalExam != null">physical_exam = #{physicalExam},</if>
+            <if test="initialDiagnosis != null">initial_diagnosis = #{initialDiagnosis},</if>
+            operate_doctor_id = #{operateDoctorId},
+            operate_doctor = #{operateDoctor},
+            image_id = #{imageId},
+            image_path = #{imagePath},
+            ai_result_path = #{aiResultPath},
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="remark != null">remark = #{remark},</if>
+        </trim>
+        WHERE record_id = #{recordId}
+    </update>
+
+    <delete id="deleteMedicalRecordByRecordId" parameterType="Long">
+        DELETE FROM medical_record WHERE record_id = #{recordId}
+    </delete>
+
+    <delete id="deleteMedicalRecordByRecordIds" parameterType="Long">
+        DELETE FROM medical_record WHERE record_id IN
+        <foreach item="recordId" collection="array" open="(" separator="," close=")">
+            #{recordId}
+        </foreach>
+    </delete>
+</mapper>

@@ -5,12 +5,13 @@
 
 export function isAdminRole(roles) {
   if (!roles || !roles.length) return false
-  return roles.includes('admin')
+  return roles.map(role => String(role).toLowerCase()).includes('admin')
 }
 
 export function isDoctorRole(roles) {
   if (!roles || !roles.length) return false
-  return roles.includes('doctor')
+  const normalizedRoles = roles.map(role => String(role).toLowerCase())
+  return normalizedRoles.some(role => ['doctor', 'physician', 'role_doctor', 'role_physician', '医生', '医师'].includes(role))
 }
 
 /** 非管理员且具备医生角色时，进入医生工作台 */

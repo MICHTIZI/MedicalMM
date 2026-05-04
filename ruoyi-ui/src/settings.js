@@ -57,5 +57,5 @@ module.exports = {
     /**
      * 底部版权文本内容
      */
-    footerContent: '医疗辅助诊断平台'
+    footerContent: '肺炎多模态辅助诊断系统'
 }

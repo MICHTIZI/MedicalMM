@@ -47,7 +47,8 @@ router.beforeEach((to, from, next) => {
                         const roles = store.getters.roles
                         const home = defaultHomePath(roles)
                         const noExplicitRedirect = !to.query || !to.query.redirect
-                        if (noExplicitRedirect && isDefaultEntryPath(to.path) && isPhysicianPortalUser(roles) && to.path !== home) {
+                        const isLoginEntry = from.path === '/login'
+                        if (((noExplicitRedirect && isDefaultEntryPath(to.path)) || isLoginEntry) && isPhysicianPortalUser(roles) && to.path !== home) {
                             next({ path: home, replace: true })
                         } else {
                             next({ ...to, replace: true }) // hack方法 确保addRoutes已完成

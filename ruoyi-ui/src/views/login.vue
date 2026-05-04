@@ -12,7 +12,7 @@
           </svg>
         </div>
         <div class="medical-login__brand-text">
-          <span class="medical-login__brand-title">肺炎辅助诊断系统</span>
+          <span class="medical-login__brand-title">肺炎多模态辅助诊断系统</span>
           <span class="medical-login__brand-sub">{{ brandSub }}</span>
         </div>
       </div>

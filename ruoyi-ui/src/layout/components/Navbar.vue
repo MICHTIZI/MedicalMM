@@ -6,8 +6,8 @@
     <div class="medical-navbar__brand">
       <logo v-show="showLogo" :collapse="false"></logo>
       <div class="medical-navbar__meta">
-        <span class="medical-navbar__eyebrow">Medical Diagnosis Platform</span>
-        <span class="medical-navbar__title">智能医疗辅助诊断平台</span>
+        <span class="medical-navbar__eyebrow">Multimodal Pneumonia Diagnosis</span>
+        <span class="medical-navbar__title">肺炎多模态辅助诊断系统</span>
       </div>
     </div>
 

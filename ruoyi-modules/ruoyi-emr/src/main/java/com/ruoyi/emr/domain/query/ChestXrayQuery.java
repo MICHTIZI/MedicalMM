@@ -18,6 +18,9 @@ public class ChestXrayQuery implements Serializable
     private String endTime;
     private String labelStr;
     private Long seqId;
+    private Long patientId;
+    private String patientName;
+    private Long attendingDoctorId;
 
     public String getKeyword() { return keyword; }
     public void setKeyword(String keyword) { this.keyword = keyword; }
@@ -45,4 +48,13 @@ public class ChestXrayQuery implements Serializable
 
     public Long getSeqId() { return seqId; }
     public void setSeqId(Long seqId) { this.seqId = seqId; }
+
+    public Long getPatientId() { return patientId; }
+    public void setPatientId(Long patientId) { this.patientId = patientId; }
+
+    public String getPatientName() { return patientName; }
+    public void setPatientName(String patientName) { this.patientName = patientName; }
+
+    public Long getAttendingDoctorId() { return attendingDoctorId; }
+    public void setAttendingDoctorId(Long attendingDoctorId) { this.attendingDoctorId = attendingDoctorId; }
 }

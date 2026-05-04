@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.emr.mapper.MedicalPatientMapper">
+
+    <resultMap id="MedicalPatientResult" type="com.ruoyi.emr.domain.MedicalPatient">
+        <id property="patientId" column="patient_id" />
+        <result property="patientName" column="patient_name" />
+        <result property="gender" column="gender" />
+        <result property="age" column="age" />
+        <result property="phone" column="phone" />
+        <result property="address" column="address" />
+        <result property="attendingDoctorId" column="attending_doctor_id" />
+        <result property="attendingDoctor" column="attending_doctor" />
+        <result property="createBy" column="create_by" />
+        <result property="createTime" column="create_time" />
+        <result property="updateBy" column="update_by" />
+        <result property="updateTime" column="update_time" />
+        <result property="remark" column="remark" />
+    </resultMap>
+
+    <sql id="selectMedicalPatientVo">
+        SELECT patient_id, patient_name, gender, age, phone, address,
+               attending_doctor_id, attending_doctor,
+               create_by, create_time, update_by, update_time, remark
+        FROM medical_patient
+    </sql>
+
+    <select id="selectMedicalPatientList" parameterType="com.ruoyi.emr.domain.MedicalPatient" resultMap="MedicalPatientResult">
+        <include refid="selectMedicalPatientVo" />
+        <where>
+            <if test="patientName != null and patientName != ''">
+                AND patient_name LIKE CONCAT('%', #{patientName}, '%')
+            </if>
+            <if test="gender != null and gender != ''">
+                AND gender = #{gender}
+            </if>
+            <if test="phone != null and phone != ''">
+                AND phone LIKE CONCAT('%', #{phone}, '%')
+            </if>
+            <if test="attendingDoctorId != null">
+                AND attending_doctor_id = #{attendingDoctorId}
+            </if>
+            <if test="attendingDoctor != null and attendingDoctor != ''">
+                AND attending_doctor LIKE CONCAT('%', #{attendingDoctor}, '%')
+            </if>
+        </where>
+        ORDER BY create_time DESC, patient_id DESC
+    </select>
+
+    <select id="selectMedicalPatientByPatientId" parameterType="Long" resultMap="MedicalPatientResult">
+        <include refid="selectMedicalPatientVo" />
+        WHERE patient_id = #{patientId}
+    </select>
+
+    <select id="selectDoctorNickNameById" resultType="String">
+        SELECT u.nick_name
+        FROM sys_user u
+        LEFT JOIN sys_user_role ur ON ur.user_id = u.user_id
+        LEFT JOIN sys_role r ON r.role_id = ur.role_id
+        WHERE u.user_id = #{userId}
+          AND u.del_flag = '0'
+          AND u.status = '0'
+          AND (r.role_key IN ('doctor', 'physician') OR u.user_id = 1)
+        LIMIT 1
+    </select>
+
+    <select id="selectDoctorOptions" resultType="com.ruoyi.emr.domain.vo.DoctorOptionVo">
+        SELECT DISTINCT u.user_id AS userId, u.nick_name AS nickName
+        FROM sys_user u
+        INNER JOIN sys_user_role ur ON ur.user_id = u.user_id
+        INNER JOIN sys_role r ON r.role_id = ur.role_id
+        WHERE u.del_flag = '0'
+          AND u.status = '0'
+          AND r.role_key IN ('doctor', 'physician')
+        ORDER BY u.user_id ASC
+    </select>
+
+    <insert id="insertMedicalPatient" parameterType="com.ruoyi.emr.domain.MedicalPatient" useGeneratedKeys="true" keyProperty="patientId">
+        INSERT INTO medical_patient
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="patientName != null and patientName != ''">patient_name,</if>
+            <if test="gender != null and gender != ''">gender,</if>
+            <if test="age != null">age,</if>
+            <if test="phone != null">phone,</if>
+            <if test="address != null">address,</if>
+            <if test="attendingDoctorId != null">attending_doctor_id,</if>
+            <if test="attendingDoctor != null and attendingDoctor != ''">attending_doctor,</if>
+            <if test="createBy != null">create_by,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="remark != null">remark,</if>
+        </trim>
+        <trim prefix="VALUES (" suffix=")" suffixOverrides=",">
+            <if test="patientName != null and patientName != ''">#{patientName},</if>
+            <if test="gender != null and gender != ''">#{gender},</if>
+            <if test="age != null">#{age},</if>
+            <if test="phone != null">#{phone},</if>
+            <if test="address != null">#{address},</if>
+            <if test="attendingDoctorId != null">#{attendingDoctorId},</if>
+            <if test="attendingDoctor != null and attendingDoctor != ''">#{attendingDoctor},</if>
+            <if test="createBy != null">#{createBy},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="remark != null">#{remark},</if>
+        </trim>
+    </insert>
+
+    <update id="updateMedicalPatient" parameterType="com.ruoyi.emr.domain.MedicalPatient">
+        UPDATE medical_patient
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="patientName != null and patientName != ''">patient_name = #{patientName},</if>
+            <if test="gender != null">gender = #{gender},</if>
+            <if test="age != null">age = #{age},</if>
+            <if test="phone != null">phone = #{phone},</if>
+            <if test="address != null">address = #{address},</if>
+            <if test="attendingDoctorId != null">attending_doctor_id = #{attendingDoctorId},</if>
+            <if test="attendingDoctor != null and attendingDoctor != ''">attending_doctor = #{attendingDoctor},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="remark != null">remark = #{remark},</if>
+        </trim>
+        WHERE patient_id = #{patientId}
+    </update>
+
+    <delete id="deleteMedicalPatientByPatientId" parameterType="Long">
+        DELETE FROM medical_patient WHERE patient_id = #{patientId}
+    </delete>
+
+    <delete id="deleteMedicalPatientByPatientIds" parameterType="Long">
+        DELETE FROM medical_patient WHERE patient_id IN
+        <foreach item="patientId" collection="array" open="(" separator="," close=")">
+            #{patientId}
+        </foreach>
+    </delete>
+</mapper>

@@ -22,6 +22,18 @@
             <if test="q.labelStr != null and q.labelStr != ''">
                 AND cx.label_str = #{q.labelStr}
             </if>
+            <if test="q.patientId != null">
+                AND cx.patient_id = #{q.patientId}
+            </if>
+            <if test="q.patientName != null and q.patientName != ''">
+                AND cx.patient_name LIKE CONCAT('%', #{q.patientName}, '%')
+            </if>
+            <if test="q.attendingDoctorId != null">
+                AND cx.patient_id IN (
+                    SELECT p.patient_id FROM medical_patient p
+                    WHERE p.attending_doctor_id = #{q.attendingDoctorId}
+                )
+            </if>
             <if test="q.minWidth != null">
                 AND cx.width &gt;= #{q.minWidth}
             </if>

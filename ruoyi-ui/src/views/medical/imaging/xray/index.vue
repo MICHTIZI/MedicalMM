@@ -8,6 +8,9 @@
       <el-form-item label="疾病" prop="diseases">
         <el-input v-model="queryParams.diseases" placeholder="疾病名称" clearable />
       </el-form-item>
+      <el-form-item label="患者姓名" prop="patientName">
+        <el-input v-model="queryParams.patientName" placeholder="请输入患者姓名" clearable @keyup.enter.native="handleQuery" />
+      </el-form-item>
       <el-form-item label="标签" prop="labelStr">
         <el-select v-model="queryParams.labelStr" placeholder="全部" clearable style="width:100px">
           <el-option label="正常(0)" value="0" />
@@ -49,6 +52,7 @@
         </template>
       </el-table-column>
       <el-table-column label="文件名" prop="imageName" min-width="160" show-overflow-tooltip />
+      <el-table-column label="患者姓名" prop="patientName" width="120" show-overflow-tooltip />
       <el-table-column label="疾病" prop="diseases" min-width="140" show-overflow-tooltip />
       <el-table-column label="标签" prop="labelStr" width="80" align="center">
         <template slot-scope="s">
@@ -92,6 +96,7 @@ export default {
         pageSize: 10,
         keyword: undefined,
         diseases: undefined,
+        patientName: undefined,
         labelStr: undefined
       }
     }

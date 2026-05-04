@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.emr.mapper.AiImageAnalysisMapper">
+
+    <update id="updateXrayAiResult">
+        UPDATE chest_xray
+        SET ai_result_path = #{aiResultPath},
+            lesion_count = #{lesionCount},
+            diagnosis = #{diagnosis}
+        WHERE id = #{id}
+    </update>
+
+    <select id="selectMedicalRecordByImageId" parameterType="Long" resultType="com.ruoyi.emr.domain.MedicalRecord">
+        SELECT r.record_id AS recordId,
+               r.patient_id AS patientId,
+               p.patient_name AS patientName,
+               r.chief_complaint AS chiefComplaint,
+               r.present_history AS presentHistory,
+               r.past_history AS pastHistory,
+               r.physical_exam AS physicalExam,
+               r.initial_diagnosis AS initialDiagnosis,
+               r.operate_doctor_id AS operateDoctorId,
+               r.operate_doctor AS operateDoctor,
+               r.image_id AS imageId,
+               r.image_path AS imagePath,
+               r.ai_result_path AS aiResultPath,
+               r.create_time AS createTime,
+               r.update_time AS updateTime,
+               r.remark AS remark
+        FROM medical_record r
+        LEFT JOIN medical_patient p ON p.patient_id = r.patient_id
+        WHERE r.image_id = #{imageId}
+        LIMIT 1
+    </select>
+
+    <insert id="insertGeneratedRecord" parameterType="com.ruoyi.emr.domain.MedicalRecord" useGeneratedKeys="true" keyProperty="recordId">
+        INSERT INTO medical_record (
+            patient_id, chief_complaint, present_history, past_history, physical_exam, initial_diagnosis,
+            operate_doctor_id, operate_doctor, image_id, image_path, ai_result_path, create_by, create_time, remark
+        ) VALUES (
+            #{patientId}, #{chiefComplaint}, #{presentHistory}, #{pastHistory}, #{physicalExam}, #{initialDiagnosis},
+            #{operateDoctorId}, #{operateDoctor}, #{imageId}, #{imagePath}, #{aiResultPath}, #{createBy}, #{createTime}, #{remark}
+        )
+    </insert>
+
+    <update id="updateGeneratedRecord" parameterType="com.ruoyi.emr.domain.MedicalRecord">
+        UPDATE medical_record
+        SET chief_complaint = #{chiefComplaint},
+            present_history = #{presentHistory},
+            past_history = #{pastHistory},
+            physical_exam = #{physicalExam},
+            initial_diagnosis = #{initialDiagnosis},
+            operate_doctor_id = #{operateDoctorId},
+            operate_doctor = #{operateDoctor},
+            image_path = #{imagePath},
+            ai_result_path = #{aiResultPath},
+            update_by = #{updateBy},
+            update_time = #{updateTime},
+            remark = #{remark}
+        WHERE record_id = #{recordId}
+    </update>
+</mapper>

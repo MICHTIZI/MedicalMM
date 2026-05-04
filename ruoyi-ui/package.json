@@ -1,7 +1,7 @@
 {
     "name": "medical-admin-ui",
     "version": "3.6.8",
-    "description": "医疗辅助诊断平台-管理端",
+    "description": "肺炎多模态辅助诊断系统-管理端",
     "author": "",
     "license": "MIT",
     "scripts": {

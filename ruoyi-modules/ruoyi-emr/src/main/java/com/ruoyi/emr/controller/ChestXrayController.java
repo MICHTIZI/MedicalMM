@@ -38,10 +38,13 @@ import com.ruoyi.common.core.web.page.TableSupport;
 import com.ruoyi.common.log.annotation.Log;
 import com.ruoyi.common.log.enums.BusinessType;
 import com.ruoyi.common.security.annotation.RequiresPermissions;
+import com.ruoyi.common.security.utils.SecurityUtils;
 import com.ruoyi.emr.config.MinioConfig;
 import com.ruoyi.emr.domain.ChestXray;
 import com.ruoyi.emr.domain.DiseaseLabel;
+import com.ruoyi.emr.domain.MedicalPatient;
 import com.ruoyi.emr.domain.query.ChestXrayQuery;
+import com.ruoyi.emr.mapper.MedicalPatientMapper;
 import com.ruoyi.emr.service.IChestXrayService;
 import io.minio.BucketExistsArgs;
 import io.minio.GetObjectArgs;
@@ -58,7 +61,7 @@ public class ChestXrayController extends BaseController
 {
     private static final Logger log = LoggerFactory.getLogger(ChestXrayController.class);
 
-    private static final String MINIO_FOLDER = "chest_224_hd";
+    private static final String LEGACY_MINIO_FOLDER = "chest_224_hd";
 
     @Autowired
     private IChestXrayService chestXrayService;
@@ -68,6 +71,9 @@ public class ChestXrayController extends BaseController
 
     @Autowired
     private MinioConfig minioConfig;
+
+    @Autowired
+    private MedicalPatientMapper medicalPatientMapper;
 
     /* =============== 列表 / 详情 =============== */
 
@@ -122,13 +128,19 @@ public class ChestXrayController extends BaseController
         return success();
     }
 
-    /* =============== 文件上传（MinIO → chest_224_hd/） =============== */
+    /* =============== 文件上传（MinIO bucket root） =============== */
 
     @RequiresPermissions("imaging:xray:upload")
     @Log(title = "影像上传", businessType = BusinessType.INSERT)
     @PostMapping("/upload")
-    public AjaxResult upload(@RequestParam("files") MultipartFile[] files)
+    public AjaxResult upload(@RequestParam("files") MultipartFile[] files, @RequestParam("patientId") Long patientId)
     {
+        MedicalPatient patient = resolveUploadPatient(patientId);
+        if (patient == null)
+        {
+            return error("请选择有效患者");
+        }
+
         try
         {
             ensureBucket();
@@ -146,7 +158,7 @@ public class ChestXrayController extends BaseController
 
             String storedName = UUID.randomUUID().toString().replace("-", "")
                 + "_" + originalName;
-            String objectKey = MINIO_FOLDER + "/" + storedName;
+            String objectKey = storedName;
 
             try (InputStream is = file.getInputStream())
             {
@@ -179,6 +191,8 @@ public class ChestXrayController extends BaseController
             entity.setImageName(originalName);
             entity.setWidth(w);
             entity.setHeight(h);
+            entity.setPatientId(patient.getPatientId());
+            entity.setPatientName(patient.getPatientName());
             entity.setLabelStr("0");
             entity.setDiseases("");
             entity.setCreateTime(new Date());
@@ -188,7 +202,25 @@ public class ChestXrayController extends BaseController
         return AjaxResult.success("成功上传 " + saved.size() + " 张影像", saved);
     }
 
-    /* =============== 图片代理（从 MinIO chest_224_hd/ 读取） =============== */
+    private MedicalPatient resolveUploadPatient(Long patientId)
+    {
+        if (patientId == null)
+        {
+            return null;
+        }
+        MedicalPatient patient = medicalPatientMapper.selectMedicalPatientByPatientId(patientId);
+        if (patient == null)
+        {
+            return null;
+        }
+        if (!SecurityUtils.isAdmin() && (patient.getAttendingDoctorId() == null || !patient.getAttendingDoctorId().equals(SecurityUtils.getUserId())))
+        {
+            return null;
+        }
+        return patient;
+    }
+
+    /* =============== 图片代理（优先从 MinIO bucket root 读取，兼容历史目录） =============== */
 
     @GetMapping("/image/**")
     public void proxyImage(HttpServletRequest request, HttpServletResponse response)
@@ -209,7 +241,7 @@ public class ChestXrayController extends BaseController
         }
 
         String filename = extractFilename(raw);
-        String objectKey = MINIO_FOLDER + "/" + filename;
+        String objectKey = resolveImageObjectKey(raw, filename);
 
         log.debug("Image proxy: raw={}, filename={}, objectKey={}", raw, filename, objectKey);
 
@@ -246,6 +278,40 @@ public class ChestXrayController extends BaseController
         {
             log.warn("Image proxy 404: bucket={}, objectKey={}, error={}", minioConfig.getBucketName(), objectKey, e.getMessage());
             response.setStatus(404);
+        }
+    }
+
+    private String resolveImageObjectKey(String raw, String filename)
+    {
+        if (objectExists(raw))
+        {
+            return raw;
+        }
+        if (objectExists(filename))
+        {
+            return filename;
+        }
+        String legacyObjectKey = LEGACY_MINIO_FOLDER + "/" + filename;
+        if (objectExists(legacyObjectKey))
+        {
+            return legacyObjectKey;
+        }
+        return filename;
+    }
+
+    private boolean objectExists(String objectKey)
+    {
+        try
+        {
+            minioClient.statObject(StatObjectArgs.builder()
+                .bucket(minioConfig.getBucketName())
+                .object(objectKey)
+                .build());
+            return true;
+        }
+        catch (Exception e)
+        {
+            return false;
         }
     }
 

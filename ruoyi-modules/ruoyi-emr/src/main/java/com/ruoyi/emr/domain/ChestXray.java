@@ -37,6 +37,21 @@ public class ChestXray implements Serializable
     @Excel(name = "高度")
     private Integer height;
 
+    @Excel(name = "患者ID")
+    private Long patientId;
+
+    @Excel(name = "患者姓名")
+    private String patientName;
+
+    @Excel(name = "AI标注图路径")
+    private String aiResultPath;
+
+    @Excel(name = "病灶数量")
+    private Integer lesionCount;
+
+    @Excel(name = "AI诊断结果")
+    private String diagnosis;
+
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @Excel(name = "入库时间", width = 20, dateFormat = "yyyy-MM-dd HH:mm:ss")
     private Date createTime;
@@ -63,6 +78,21 @@ public class ChestXray implements Serializable
 
     public Integer getHeight() { return height; }
     public void setHeight(Integer height) { this.height = height; }
+
+    public Long getPatientId() { return patientId; }
+    public void setPatientId(Long patientId) { this.patientId = patientId; }
+
+    public String getPatientName() { return patientName; }
+    public void setPatientName(String patientName) { this.patientName = patientName; }
+
+    public String getAiResultPath() { return aiResultPath; }
+    public void setAiResultPath(String aiResultPath) { this.aiResultPath = aiResultPath; }
+
+    public Integer getLesionCount() { return lesionCount; }
+    public void setLesionCount(Integer lesionCount) { this.lesionCount = lesionCount; }
+
+    public String getDiagnosis() { return diagnosis; }
+    public void setDiagnosis(String diagnosis) { this.diagnosis = diagnosis; }
 
     public Date getCreateTime() { return createTime; }
     public void setCreateTime(Date createTime) { this.createTime = createTime; }
