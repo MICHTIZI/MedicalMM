@@ -23,6 +23,14 @@ export function getAiImageRecord(imageId) {
   })
 }
 
+export function exportAiImageReport(imageId) {
+  return request({
+    url: '/emr/aiImage/' + imageId + '/exportReport',
+    method: 'post',
+    responseType: 'blob'
+  })
+}
+
 export function aiImageUrl(path) {
   if (!path) return ''
   const normalized = normalizeMinioPath(path)

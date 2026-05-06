@@ -30,14 +30,12 @@
         <template slot-scope="scope">{{ scope.row.lesionCount || 0 }}</template>
       </el-table-column>
       <el-table-column label="AI诊断" prop="diagnosis" min-width="220" show-overflow-tooltip />
-      <el-table-column label="创建时间" prop="createTime" width="160" align="center">
-        <template slot-scope="scope">{{ parseTime(scope.row.createTime) }}</template>
-      </el-table-column>
-      <el-table-column label="操作" width="240" align="center">
+      <el-table-column label="操作" width="310" align="center">
         <template slot-scope="scope">
           <el-button size="mini" type="text" icon="el-icon-cpu" @click="handleAnalyze(scope.row)" v-hasPermi="['ai:image:analyze']">AI分析</el-button>
           <el-button size="mini" type="text" icon="el-icon-picture" @click="handleCompare(scope.row)" v-hasPermi="['ai:image:view']">查看双图</el-button>
           <el-button size="mini" type="text" icon="el-icon-document" @click="handleRecord(scope.row)" v-hasPermi="['ai:image:record']">查看病历</el-button>
+          <el-button size="mini" type="text" icon="el-icon-download" @click="handleExportReport(scope.row)" v-hasPermi="['ai:image:record']">导出报告</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -71,7 +69,8 @@
 </template>
 
 <script>
-import { listAiImage, analyzeAiImage, getAiImageRecord, aiImageUrl, aiResultPathFromImage } from '@/api/medical/aiImage'
+import { listAiImage, analyzeAiImage, getAiImageRecord, exportAiImageReport, aiImageUrl, aiResultPathFromImage } from '@/api/medical/aiImage'
+import { saveAs } from 'file-saver'
 
 export default {
   name: 'AiImageAnalysis',
@@ -136,6 +135,13 @@ export default {
       getAiImageRecord(row.id).then(res => {
         this.record = res.data || null
         this.recordOpen = true
+      })
+    },
+    handleExportReport(row) {
+      exportAiImageReport(row.id).then(data => {
+        const patientName = row.patientName || '未知患者'
+        const filename = `病历报告_${patientName}_${new Date().getTime()}.docx`
+        saveAs(new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }), filename)
       })
     }
   }
