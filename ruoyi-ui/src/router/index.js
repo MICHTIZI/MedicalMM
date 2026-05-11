@@ -82,6 +82,20 @@ export const constantRoutes = [{
         meta: { title: '锁定屏幕' }
     },
     {
+        path: '/viewer/pacs',
+        component: () =>
+            import ('@/views/medical/viewer/index'),
+        hidden: true,
+        meta: { title: '阅片工作站' }
+    },
+    {
+        path: '/assisted-diagnosis/flow',
+        component: () =>
+            import ('@/views/medical/assisted-flow/index'),
+        hidden: true,
+        meta: { title: '辅助诊断录入' }
+    },
+    {
         path: '/user',
         component: Layout,
         hidden: true,

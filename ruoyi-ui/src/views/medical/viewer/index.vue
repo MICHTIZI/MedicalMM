@@ -1,0 +1,1042 @@
+<template>
+  <div class="pacs-root" ref="pacsRoot">
+    <header class="pacs-toolbar">
+      <div class="tb-left">
+        <el-button type="text" class="tb-txt" icon="el-icon-back" @click="goPatientList">返回患者列表</el-button>
+        <el-divider direction="vertical" class="tb-div" />
+        <span class="tb-label">患者</span>
+        <el-select
+          v-model="selectedPatientId"
+          filterable
+          remote
+          clearable
+          reserve-keyword
+          placeholder="搜索并选择患者"
+          :remote-method="remotePatientSearch"
+          :loading="patientSearchLoading"
+          size="small"
+          class="tb-patient-select"
+          @change="onPatientChange"
+        >
+          <el-option v-for="p in patientHits" :key="p.patientId" :label="formatPatientOption(p)" :value="p.patientId" />
+        </el-select>
+        <el-divider direction="vertical" class="tb-div" />
+        <el-button-group>
+          <el-button size="mini" class="tb-btn" icon="el-icon-arrow-left" :disabled="!canPrevImg" @click="prevImage">上一张</el-button>
+          <el-button size="mini" class="tb-btn" icon="el-icon-arrow-right" :disabled="!canNextImg" @click="nextImage">下一张</el-button>
+        </el-button-group>
+        <el-button size="mini" class="tb-btn" icon="el-icon-refresh-left" @click="resetView">重置视图</el-button>
+      </div>
+
+      <div class="tb-center">
+        <el-button-group>
+          <el-button size="mini" class="tb-btn" :type="tool==='zoom'?'primary':''" icon="el-icon-zoom-in" @click="tool='zoom'">缩放</el-button>
+          <el-button size="mini" class="tb-btn" :type="tool==='pan'?'primary':''" icon="el-icon-rank" @click="tool='pan'">平移</el-button>
+        </el-button-group>
+        <el-popover placement="bottom" width="220" trigger="click">
+          <div class="wl-pop">
+            <div>窗位（亮度）{{ Math.round(brightness * 100) }}%</div>
+            <el-slider v-model="brightness" :min="0.5" :max="1.5" :step="0.02" />
+            <div>窗宽（对比）{{ Math.round(contrast * 100) }}%</div>
+            <el-slider v-model="contrast" :min="0.5" :max="1.8" :step="0.02" />
+          </div>
+          <el-button slot="reference" size="mini" class="tb-btn" icon="el-icon-sunny">窗宽窗位</el-button>
+        </el-popover>
+        <el-button size="mini" class="tb-btn" icon="el-icon-full-screen" @click="fitToCanvas">铺满画布</el-button>
+        <el-button size="mini" class="tb-btn" :type="tool==='ruler'?'primary':''" icon="el-icon-place" @click="tool='ruler'">测距</el-button>
+        <el-button size="mini" class="tb-btn" :type="tool==='rect'?'primary':''" icon="el-icon-crop" @click="tool='rect'">矩形标注</el-button>
+        <el-button size="mini" class="tb-btn" :type="tool==='brush'?'primary':''" icon="el-icon-edit" @click="tool='brush'">画笔</el-button>
+        <el-button size="mini" class="tb-btn" icon="el-icon-delete" @click="clearUserAnnotations">清除标注</el-button>
+      </div>
+
+      <div class="tb-right">
+        <el-button size="mini" class="tb-btn" icon="el-icon-document" @click="goImportRecord">导入病历</el-button>
+        <el-button size="mini" class="tb-btn" icon="el-icon-tickets" @click="goImportLab">导入检验</el-button>
+        <el-button size="mini" class="tb-btn cta" type="danger" plain icon="el-icon-cpu" :loading="aiLoading" :disabled="!currentXray" @click="runAiAnalyze">AI 病灶分析</el-button>
+        <el-button size="mini" class="tb-btn cta" type="warning" plain icon="el-icon-document-copy" :disabled="!currentXray" @click="exportReport">生成报告</el-button>
+        <el-button size="mini" class="tb-btn" :icon="isFs ? 'el-icon-copy-document' : 'el-icon-full-screen'" @click="toggleFullscreen">{{ isFs ? '退出全屏' : '全屏' }}</el-button>
+      </div>
+    </header>
+
+    <div class="pacs-main">
+      <section class="pacs-left" :style="{ width: leftFrac * 100 + '%' }">
+        <div
+          class="pacs-stage"
+          ref="stage"
+          @wheel.prevent="onStageWheel"
+          @mousedown="onStageMouseDown"
+          @mousemove="onStageMouseMove"
+          @mouseup="onStageMouseUp"
+          @mouseleave="onStageMouseUp"
+        >
+          <div v-if="!currentXray" class="stage-empty">请选择患者并加载胸片</div>
+          <div v-else class="stage-inner" ref="stageInner">
+            <div class="img-stack" :style="stackStyle">
+              <img
+                ref="imgEl"
+                class="pacs-img"
+                :src="currentImageUrl"
+                draggable="false"
+                @load="onImgLoad"
+                @error="onImgError"
+              >
+              <!-- AI 病灶框与手工标注层 -->
+              <div v-if="natW && natH" class="lesion-layer">
+                <div
+                  v-for="(lesion, idx) in displayLesions"
+                  :key="'ai-'+idx"
+                  class="lesion-box ai-lesion"
+                  :style="lesionStyle(lesion)"
+                  @mouseenter="hoverLesion = idx"
+                  @mouseleave="hoverLesion = null"
+                />
+                <div
+                  v-for="(r, idx) in userRects"
+                  :key="'ur-'+idx"
+                  class="lesion-box user-lesion"
+                  :style="normRectStyle(r)"
+                />
+                <svg v-if="rulerLineDisplay" class="ruler-svg" :viewBox="`0 0 ${natW} ${natH}`" preserveAspectRatio="none">
+                  <line :x1="rulerLineDisplay.x1" :y1="rulerLineDisplay.y1" :x2="rulerLineDisplay.x2" :y2="rulerLineDisplay.y2" stroke="#00e676" :stroke-width="rulerStrokeWidth" />
+                </svg>
+                <svg v-if="rectPreview" class="ruler-svg" :viewBox="`0 0 ${natW} ${natH}`" preserveAspectRatio="none">
+                  <rect :x="rectPreview.x" :y="rectPreview.y" :width="rectPreview.w" :height="rectPreview.h" fill="none" stroke="#ff5252" :stroke-width="rulerStrokeWidth" stroke-dasharray="8" />
+                </svg>
+              </div>
+              <canvas v-show="tool==='brush'" ref="brushCanvas" class="brush-canvas" :width="natW || 800" :height="natH || 800" />
+            </div>
+            <div v-show="hoverLesion != null && lesionTooltip" class="lesion-tip" :style="tipStyle">{{ lesionTooltip }}</div>
+          </div>
+        </div>
+      </section>
+
+      <div class="pacs-splitter" title="拖拽调整宽度" @mousedown.prevent="startSplitDrag" />
+
+      <aside class="pacs-right" :style="{ width: (1 - leftFrac) * 100 + '%' }">
+        <div class="rp-scroll">
+          <div class="rp-card">
+            <h3 class="rp-title">患者基础信息</h3>
+            <template v-if="detailSnapshot">
+              <div class="rp-row big">{{ detailSnapshot.patientName }}
+                <span class="rp-meta">{{ genderText(detailSnapshot.gender) }} · {{ detailSnapshot.age != null ? detailSnapshot.age + '岁' : '—' }}</span>
+              </div>
+              <div class="rp-row muted">主治医生：{{ detailSnapshot.attendingDoctor || '—' }}</div>
+              <div class="rp-row muted">就诊建档：{{ parseTime(detailSnapshot.createTime) }}</div>
+              <div class="rp-tags">
+                <el-tag size="mini" effect="dark" :type="diagTag(diagStatus)" :color="diagStatus === 4 ? '#722ED1' : undefined">{{ diagLabel(diagStatus) }}</el-tag>
+                <span class="rp-mod" :class="modOk(d.hasImage)"><i :class="modOk(d.hasImage)?'el-icon-success':'el-icon-circle-plus-outline'" />胸片</span>
+                <span class="rp-mod" :class="modOk(d.hasMedicalRecord)"><i :class="modOk(d.hasMedicalRecord)?'el-icon-success':'el-icon-circle-plus-outline'" />病历</span>
+                <span class="rp-mod" :class="modOk(d.hasLabResult)"><i :class="modOk(d.hasLabResult)?'el-icon-success':'el-icon-circle-plus-outline'" />检验</span>
+              </div>
+            </template>
+            <el-empty v-else description="未加载患者信息" :image-size="48" />
+          </div>
+
+          <div class="rp-card">
+            <h3 class="rp-title">AI 病灶结果</h3>
+            <template v-if="aiResult">
+              <div class="rp-kv"><span>病灶数量</span><b>{{ aiResult.lesionCount != null ? aiResult.lesionCount : (aiResult.lesion_list || aiResult.lesionList || []).length }}</b></div>
+              <div v-if="aiResult.infection_rate != null || aiResult.infectionRate != null" class="rp-kv"><span>感染率</span><b>{{ fmtPct(aiResult.infection_rate != null ? aiResult.infection_rate : aiResult.infectionRate) }}</b></div>
+              <div v-if="aiResult.total_infection_area != null || aiResult.totalInfectionArea != null" class="rp-kv"><span>感染区域面积(px²)</span><b>{{ fmtNum(aiResult.total_infection_area != null ? aiResult.total_infection_area : aiResult.totalInfectionArea) }}</b></div>
+              <div v-if="aiResult.severity" class="rp-kv"><span>严重程度</span><b class="sev">{{ aiResult.severity }}</b></div>
+              <div v-if="aiResult.pneumonia_type || aiResult.pneumoniaType" class="rp-kv"><span>肺炎类型</span><b>{{ aiResult.pneumonia_type || aiResult.pneumoniaType }}</b></div>
+              <div v-if="aiResult.diagnosis" class="rp-block"><span class="lbl">诊断意见</span><p>{{ aiResult.diagnosis }}</p></div>
+              <div v-if="aiResult.treatment_suggestion || aiResult.treatmentSuggestion" class="rp-block"><span class="lbl">诊疗建议</span><p>{{ aiResult.treatment_suggestion || aiResult.treatmentSuggestion }}</p></div>
+              <div v-if="aiResult.further_examination || aiResult.furtherExamination" class="rp-block"><span class="lbl">进一步检查</span><p>{{ aiResult.further_examination || aiResult.furtherExamination }}</p></div>
+              <el-collapse v-if="lesionListNorm.length" class="rp-collapse">
+                <el-collapse-item title="逐病灶详情" name="1">
+                  <div v-for="(lv, i) in lesionListNorm" :key="i" class="lesion-item">
+                    <div class="li-h">病灶 {{ i + 1 }}</div>
+                    <div class="rp-kv sm"><span>位置</span><b>{{ lv.full_position || lv.fullPosition || [lv.position, lv.lobe].filter(Boolean).join(' ') || '—' }}</b></div>
+                    <div class="rp-kv sm"><span>置信度</span><b>{{ lv.confidence != null ? (Number(lv.confidence) * 100).toFixed(1) + '%' : '—' }}</b></div>
+                    <div class="rp-kv sm"><span>面积(px²)</span><b>{{ lv.area != null ? fmtNum(lv.area) : '—' }}</b></div>
+                    <div class="rp-kv sm"><span>框尺寸</span><b>{{ lv.width != null && lv.height != null ? fmtNum(lv.width)+'×'+fmtNum(lv.height) : '—' }}</b></div>
+                  </div>
+                </el-collapse-item>
+              </el-collapse>
+            </template>
+            <div v-else class="rp-placeholder">执行「AI 病灶分析」后展示结构化结果与画框</div>
+          </div>
+
+          <div class="rp-card">
+            <h3 class="rp-title">电子病历（只读）</h3>
+            <pre v-if="recordPlainText" class="rp-pre">{{ recordPlainText }}</pre>
+            <div v-else class="rp-placeholder">暂无绑定病历；可点击「导入病历」录入</div>
+          </div>
+
+          <div class="rp-card rp-card-last">
+            <h3 class="rp-title">检验对照</h3>
+            <div v-if="labCompareRows.length" class="lab-table">
+              <div v-for="row in labCompareRows" :key="row.key" class="lab-row" :class="'lvl-'+row.level">
+                <span class="lab-name">{{ row.label }}</span>
+                <span class="lab-val">{{ row.value }} {{ row.unit }}</span>
+                <span class="lab-ref">参考 {{ row.refText }}</span>
+              </div>
+            </div>
+            <pre v-else-if="labRemarkText" class="rp-pre sm">{{ labRemarkText }}</pre>
+            <div v-else class="rp-placeholder">暂无检验数据；可点击「导入检验」</div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</template>
+
+<script>
+import { saveAs } from 'file-saver'
+import { listPatientCards, getPatientDiagnosisDetail } from '@/api/medical/patient'
+import { listAiImage, analyzeAiImage, exportAiImageReport, aiImageUrl } from '@/api/medical/aiImage'
+import { listMedicalRecord } from '@/api/medical/record'
+import { listLab } from '@/api/medical/labResult'
+import { buildLabCompareRows } from '@/utils/viewerLabReference'
+
+const AI_CACHE_PREFIX = 'pacs_ai_result_'
+
+export default {
+  name: 'MedicalPacsViewer',
+  data() {
+    return {
+      patientHits: [],
+      patientSearchLoading: false,
+      selectedPatientId: undefined,
+      xrayList: [],
+      currentIndex: 0,
+      leftFrac: 0.65,
+      splitDrag: false,
+      tool: 'pan',
+      scale: 1,
+      tx: 0,
+      ty: 0,
+      brightness: 1,
+      contrast: 1,
+      natW: 0,
+      natH: 0,
+      panning: false,
+      panStart: null,
+      aiResult: null,
+      aiLoading: false,
+      hoverLesion: null,
+      detailSnapshot: null,
+      diagnosisSnapshot: null,
+      recordRows: [],
+      labRows: [],
+      userRects: [],
+      rulerPoints: [],
+      rectDrag: null,
+      brushDrawing: false,
+      brushLast: null,
+      isFs: false,
+      imgError: false
+    }
+  },
+  computed: {
+    currentXray() {
+      return this.xrayList[this.currentIndex] || null
+    },
+    currentImageUrl() {
+      if (!this.currentXray || !this.currentXray.imagePath) return ''
+      return aiImageUrl(this.currentXray.imagePath)
+    },
+    canPrevImg() {
+      return this.currentIndex > 0
+    },
+    canNextImg() {
+      return this.currentIndex < this.xrayList.length - 1
+    },
+    stackStyle() {
+      const f = []
+      f.push(`translate(${this.tx}px, ${this.ty}px)`)
+      f.push(`scale(${this.scale})`)
+      return {
+        transform: f.join(' '),
+        transformOrigin: 'center center',
+        filter: `brightness(${this.brightness}) contrast(${this.contrast})`
+      }
+    },
+    lesionListNorm() {
+      if (!this.aiResult) return []
+      const list = this.aiResult.lesion_list || this.aiResult.lesionList || []
+      return Array.isArray(list) ? list : []
+    },
+    displayLesions() {
+      return this.lesionListNorm.filter(l => l.x1 != null && l.y1 != null && l.x2 != null && l.y2 != null)
+    },
+    lesionTooltip() {
+      const i = this.hoverLesion
+      if (i == null) return ''
+      const l = this.displayLesions[i]
+      if (!l) return ''
+      const pos = l.full_position || l.fullPosition || [l.position, l.lobe].filter(Boolean).join(' ')
+      const conf = l.confidence != null ? `置信度 ${(Number(l.confidence) * 100).toFixed(1)}%` : ''
+      const inf = this.aiResult && (this.aiResult.infection_rate != null || this.aiResult.infectionRate != null)
+        ? `感染占比 ${this.fmtPct(this.aiResult.infection_rate != null ? this.aiResult.infection_rate : this.aiResult.infectionRate)}`
+        : ''
+      return [pos, conf, inf].filter(Boolean).join(' · ')
+    },
+    tipStyle() {
+      return { left: '12px', bottom: '12px' }
+    },
+    d() {
+      return this.diagnosisSnapshot || {}
+    },
+    diagStatus() {
+      return this.d.diagnosisStatus != null ? Number(this.d.diagnosisStatus) : 0
+    },
+    linkedRecord() {
+      if (!this.currentXray || !this.recordRows.length) return null
+      const id = this.currentXray.id
+      const byId = this.recordRows.find(r => r.imageId === id)
+      if (byId) return byId
+      const stem = this.pathStem(this.currentXray.imagePath)
+      return this.recordRows.find(r => this.pathStem(r.imagePath) === stem && stem) || this.recordRows[0]
+    },
+    recordPlainText() {
+      const r = this.linkedRecord
+      if (!r) return ''
+      const parts = [
+        ['主诉', r.chiefComplaint],
+        ['现病史', r.presentHistory],
+        ['既往史', r.pastHistory],
+        ['体格检查', r.physicalExam],
+        ['初步诊断', r.initialDiagnosis],
+        ['备注', r.remark]
+      ]
+      return parts
+        .filter(([, v]) => v)
+        .map(([k, v]) => `【${k}】\n${v}`)
+        .join('\n\n')
+    },
+    latestLab() {
+      if (!this.labRows.length) return null
+      return [...this.labRows].sort((a, b) => new Date(b.testDate || 0) - new Date(a.testDate || 0))[0]
+    },
+    labCompareRows() {
+      return buildLabCompareRows(this.latestLab)
+    },
+    labRemarkText() {
+      const lab = this.latestLab
+      if (!lab || !lab.remark) return ''
+      return lab.remark
+    },
+    rulerLineDisplay() {
+      if (this.rulerPoints.length < 2 || !this.natW) return null
+      return {
+        x1: this.rulerPoints[0].x * this.natW,
+        y1: this.rulerPoints[0].y * this.natH,
+        x2: this.rulerPoints[1].x * this.natW,
+        y2: this.rulerPoints[1].y * this.natH
+      }
+    },
+    rectPreview() {
+      if (!this.rectDrag || !this.natW) return null
+      const x1 = Math.min(this.rectDrag.x0, this.rectDrag.x1) * this.natW
+      const y1 = Math.min(this.rectDrag.y0, this.rectDrag.y1) * this.natH
+      const x2 = Math.max(this.rectDrag.x0, this.rectDrag.x1) * this.natW
+      const y2 = Math.max(this.rectDrag.y0, this.rectDrag.y1) * this.natH
+      return { x: x1, y: y1, w: x2 - x1, h: y2 - y1 }
+    },
+    rulerStrokeWidth() {
+      return Math.max(2, (this.natW || 0) * 0.003)
+    }
+  },
+  watch: {
+    '$route.query.patientId'(v) {
+      if (v && String(v) !== String(this.selectedPatientId)) {
+        this.selectedPatientId = Number(v) || v
+        this.onPatientChange()
+      }
+    },
+    currentIndex() {
+      this.loadAiForCurrentImage()
+      this.resetViewSoft()
+    }
+  },
+  created() {
+    this.remotePatientSearch('')
+    const q = this.$route.query.patientId
+    if (q) {
+      this.selectedPatientId = Number(q) || q
+      this.$nextTick(() => this.onPatientChange())
+    }
+  },
+  mounted() {
+    document.addEventListener('mousemove', this.onSplitMouseMove)
+    document.addEventListener('mouseup', this.onSplitMouseUp)
+    document.addEventListener('fullscreenchange', this.onFsChange)
+  },
+  beforeDestroy() {
+    document.removeEventListener('mousemove', this.onSplitMouseMove)
+    document.removeEventListener('mouseup', this.onSplitMouseUp)
+    document.removeEventListener('fullscreenchange', this.onFsChange)
+  },
+  methods: {
+    fmtPct(v) {
+      if (v == null) return '—'
+      const n = Number(v)
+      return (n <= 1 ? n * 100 : n).toFixed(1) + '%'
+    },
+    fmtNum(v) {
+      if (v == null) return '—'
+      const n = Number(v)
+      return Number.isInteger(n) ? String(n) : n.toFixed(2)
+    },
+    pathStem(p) {
+      if (!p) return ''
+      const s = String(p).replace(/\\/g, '/')
+      const base = s.substring(s.lastIndexOf('/') + 1)
+      return base.replace(/\.[^.]+$/, '')
+    },
+    formatPatientOption(p) {
+      return `${p.patientName}（ID ${p.patientId}）`
+    },
+    genderText(g) {
+      const m = { 0: '男', 1: '女', 2: '未知' }
+      return m[g] != null ? m[g] : '—'
+    },
+    modOk(v) {
+      return v === 1 || v === true
+    },
+    diagLabel(s) {
+      const map = { 0: '未开始', 1: 'AI诊断中', 2: '诊断完成', 3: '待审核', 4: '已生成报告' }
+      return map[s] || '—'
+    },
+    diagTag(s) {
+      const map = { 0: 'info', 1: 'primary', 2: 'success', 3: 'warning', 4: '' }
+      return map[s] || 'info'
+    },
+    remotePatientSearch(query) {
+      this.patientSearchLoading = true
+      listPatientCards({ pageNum: 1, pageSize: 50, patientName: query || undefined })
+        .then(res => {
+          this.patientHits = res.rows || []
+        })
+        .finally(() => { this.patientSearchLoading = false })
+    },
+    onPatientChange() {
+      this.xrayList = []
+      this.currentIndex = 0
+      this.aiResult = null
+      this.detailSnapshot = null
+      this.diagnosisSnapshot = null
+      this.recordRows = []
+      this.labRows = []
+      if (!this.selectedPatientId) return
+      const pid = this.selectedPatientId
+      getPatientDiagnosisDetail(pid).then(res => {
+        const d = res.data || {}
+        this.detailSnapshot = d.patientSnapshot || null
+        this.diagnosisSnapshot = d.diagnosisSnapshot || null
+      }).catch(() => {})
+      listAiImage({ patientId: pid, pageNum: 1, pageSize: 200 }).then(res => {
+        this.xrayList = res.rows || []
+        this.currentIndex = 0
+        const qImg = this.$route.query.imageId
+        if (qImg && this.xrayList.length) {
+          const idx = this.xrayList.findIndex(r => String(r.id) === String(qImg))
+          if (idx >= 0) this.currentIndex = idx
+        }
+        this.$nextTick(() => this.loadAiForCurrentImage())
+      })
+      listMedicalRecord({ patientId: pid, pageNum: 1, pageSize: 200 }).then(res => {
+        this.recordRows = res.rows || []
+      })
+      listLab({ patientId: pid, pageNum: 1, pageSize: 100 }).then(res => {
+        this.labRows = res.rows || []
+      })
+    },
+    loadAiForCurrentImage() {
+      this.aiResult = null
+      const row = this.currentXray
+      if (!row || !row.id) return
+      try {
+        const raw = sessionStorage.getItem(AI_CACHE_PREFIX + row.id)
+        if (raw) this.aiResult = JSON.parse(raw)
+      } catch (e) {}
+    },
+    persistAi(rowId, payload) {
+      try {
+        sessionStorage.setItem(AI_CACHE_PREFIX + rowId, JSON.stringify(payload))
+      } catch (e) {}
+    },
+    prevImage() {
+      if (this.canPrevImg) this.currentIndex--
+    },
+    nextImage() {
+      if (this.canNextImg) this.currentIndex++
+    },
+    resetViewSoft() {
+      this.scale = 1
+      this.tx = 0
+      this.ty = 0
+    },
+    resetView() {
+      this.resetViewSoft()
+      this.brightness = 1
+      this.contrast = 1
+    },
+    fitToCanvas() {
+      const stage = this.$refs.stage
+      const img = this.$refs.imgEl
+      if (!stage || !img || !this.natW || !this.natH) return
+      const sw = stage.clientWidth
+      const sh = stage.clientHeight
+      const s = Math.min(sw / this.natW, sh / this.natH) * 0.98
+      this.scale = s
+      this.tx = 0
+      this.ty = 0
+    },
+    onImgLoad() {
+      const img = this.$refs.imgEl
+      if (!img) return
+      this.natW = img.naturalWidth || img.width
+      this.natH = img.naturalHeight || img.height
+      this.imgError = false
+      this.$nextTick(() => this.initBrushCanvas())
+      this.fitToCanvas()
+    },
+    onImgError() {
+      this.imgError = true
+    },
+    initBrushCanvas() {
+      const cvs = this.$refs.brushCanvas
+      if (!cvs || !this.natW) return
+      cvs.width = this.natW
+      cvs.height = this.natH
+      const ctx = cvs.getContext('2d')
+      ctx.clearRect(0, 0, cvs.width, cvs.height)
+    },
+    lesionStyle(lesion) {
+      const x1 = Number(lesion.x1)
+      const y1 = Number(lesion.y1)
+      const x2 = Number(lesion.x2)
+      const y2 = Number(lesion.y2)
+      const l = (x1 / this.natW) * 100
+      const t = (y1 / this.natH) * 100
+      const w = ((x2 - x1) / this.natW) * 100
+      const h = ((y2 - y1) / this.natH) * 100
+      return {
+        left: l + '%',
+        top: t + '%',
+        width: w + '%',
+        height: h + '%'
+      }
+    },
+    normRectStyle(r) {
+      return {
+        left: r.x * 100 + '%',
+        top: r.y * 100 + '%',
+        width: r.w * 100 + '%',
+        height: r.h * 100 + '%'
+      }
+    },
+    onStageWheel(e) {
+      const delta = e.deltaY > 0 ? -0.08 : 0.08
+      const next = Math.min(8, Math.max(0.2, this.scale + delta))
+      this.scale = next
+    },
+    clientToNorm(clientX, clientY) {
+      const img = this.$refs.imgEl
+      if (!img || !this.natW) return null
+      const r = img.getBoundingClientRect()
+      const px = (clientX - r.left) / r.width
+      const py = (clientY - r.top) / r.height
+      if (px < 0 || py < 0 || px > 1 || py > 1) return null
+      return { x: px, y: py }
+    },
+    onStageMouseDown(e) {
+      if (e.button !== 0) return
+      const norm = this.clientToNorm(e.clientX, e.clientY)
+      if (!norm) return
+      if (this.tool === 'pan') {
+        this.panning = true
+        this.panStart = { x: e.clientX, y: e.clientY, tx: this.tx, ty: this.ty }
+      } else if (this.tool === 'ruler') {
+        if (this.rulerPoints.length >= 2) this.rulerPoints = []
+        this.rulerPoints.push(norm)
+      } else if (this.tool === 'rect') {
+        this.rectDrag = { x0: norm.x, y0: norm.y, x1: norm.x, y1: norm.y }
+      } else if (this.tool === 'brush') {
+        this.brushDrawing = true
+        this.brushLast = norm
+        const cvs = this.$refs.brushCanvas
+        const ctx = cvs && cvs.getContext('2d')
+        if (ctx) {
+          ctx.strokeStyle = '#ff5252'
+          ctx.lineWidth = Math.max(2, this.natW * 0.004)
+          ctx.lineCap = 'round'
+          ctx.beginPath()
+          ctx.moveTo(norm.x * this.natW, norm.y * this.natH)
+        }
+      }
+    },
+    onStageMouseMove(e) {
+      if (this.panning && this.panStart) {
+        this.tx = this.panStart.tx + (e.clientX - this.panStart.x)
+        this.ty = this.panStart.ty + (e.clientY - this.panStart.y)
+      }
+      const norm = this.clientToNorm(e.clientX, e.clientY)
+      if (this.rectDrag && norm) {
+        this.rectDrag.x1 = norm.x
+        this.rectDrag.y1 = norm.y
+      }
+      if (this.brushDrawing && norm && this.brushLast) {
+        const cvs = this.$refs.brushCanvas
+        const ctx = cvs && cvs.getContext('2d')
+        if (ctx) {
+          ctx.lineTo(norm.x * this.natW, norm.y * this.natH)
+          ctx.stroke()
+        }
+        this.brushLast = norm
+      }
+    },
+    onStageMouseUp() {
+      if (this.panning) this.panning = false
+      if (this.rectDrag && this.natW) {
+        const x = Math.min(this.rectDrag.x0, this.rectDrag.x1)
+        const y = Math.min(this.rectDrag.y0, this.rectDrag.y1)
+        const w = Math.abs(this.rectDrag.x1 - this.rectDrag.x0)
+        const h = Math.abs(this.rectDrag.y1 - this.rectDrag.y0)
+        if (w > 0.01 && h > 0.01) this.userRects.push({ x, y, w, h })
+        this.rectDrag = null
+      }
+      this.brushDrawing = false
+    },
+    clearUserAnnotations() {
+      this.userRects = []
+      this.rulerPoints = []
+      this.rectDrag = null
+      this.initBrushCanvas()
+    },
+    startSplitDrag() {
+      this.splitDrag = true
+    },
+    onSplitMouseMove(e) {
+      if (!this.splitDrag) return
+      const root = this.$refs.pacsRoot
+      if (!root) return
+      const rect = root.getBoundingClientRect()
+      const x = e.clientX - rect.left
+      let frac = x / rect.width
+      frac = Math.min(0.78, Math.max(0.38, frac))
+      this.leftFrac = frac
+    },
+    onSplitMouseUp() {
+      this.splitDrag = false
+    },
+    goPatientList() {
+      this.$router.push('/patient/list').catch(() => {})
+    },
+    goImportRecord() {
+      const pid = this.selectedPatientId
+      if (!pid) {
+        this.$message.warning('请先选择患者')
+        return
+      }
+      this.$router.push({ path: '/patient/record', query: { patientId: pid } }).catch(() => {})
+    },
+    goImportLab() {
+      const pid = this.selectedPatientId
+      if (!pid) {
+        this.$message.warning('请先选择患者')
+        return
+      }
+      this.$router.push({ path: '/patient/lab', query: { patientId: pid } }).catch(() => {})
+    },
+    runAiAnalyze() {
+      if (!this.currentXray) return
+      const curId = this.currentXray.id
+      const pid = this.selectedPatientId
+      this.aiLoading = true
+      analyzeAiImage(curId)
+        .then(res => {
+          let payload = res && res.data != null ? res.data : res
+          if (payload && payload.data != null && payload.lesionList == null && payload.lesion_list == null) {
+            payload = payload.data
+          }
+          this.aiResult = payload
+          this.persistAi(curId, payload)
+          this.$message.success((res && res.msg) || '\u68c0\u6d4b\u6210\u529f')
+          if (!pid) return null
+          return listAiImage({ patientId: pid, pageNum: 1, pageSize: 200 })
+        })
+        .then(listRes => {
+          if (listRes && listRes.rows) {
+            this.xrayList = listRes.rows
+            const idx = this.xrayList.findIndex(r => r.id === curId)
+            if (idx >= 0) this.currentIndex = idx
+          }
+          this.loadAiForCurrentImage()
+        })
+        .catch(() => {})
+        .finally(() => { this.aiLoading = false })
+    },
+    exportReport() {
+      if (!this.currentXray) return
+      exportAiImageReport(this.currentXray.id).then(data => {
+        const patientName = (this.currentXray.patientName || '\u672a\u77e5\u60a3\u8005')
+        const filename = `\u75c5\u5386\u62a5\u544a_${patientName}_${new Date().getTime()}.docx`
+        saveAs(new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }), filename)
+      })
+    },
+    toggleFullscreen() {
+      const el = this.$refs.pacsRoot
+      if (!document.fullscreenElement) {
+        el.requestFullscreen && el.requestFullscreen()
+      } else {
+        document.exitFullscreen && document.exitFullscreen()
+      }
+    },
+    onFsChange() {
+      this.isFs = !!document.fullscreenElement
+    }
+  }
+}
+</script>
+
+<style scoped>
+.pacs-root {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  background: #e8eaed;
+  font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+}
+.pacs-toolbar {
+  height: 60px;
+  min-height: 60px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px 0 8px;
+  background: linear-gradient(180deg, #003366 0%, #004085 100%);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+.tb-left,
+.tb-center,
+.tb-right {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.tb-center {
+  justify-content: center;
+  flex: 1;
+  padding: 0 8px;
+}
+.tb-txt {
+  color: #fff !important;
+}
+.tb-btn {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+  color: #fff !important;
+}
+.tb-btn:hover {
+  background: rgba(255, 255, 255, 0.22) !important;
+}
+.tb-btn.cta {
+  font-weight: 600;
+}
+.tb-label {
+  font-size: 12px;
+  opacity: 0.85;
+  margin-right: 4px;
+}
+.tb-patient-select {
+  width: 220px;
+}
+.tb-div {
+  background: rgba(255, 255, 255, 0.25);
+  margin: 0 6px;
+}
+.pacs-main {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: row;
+  position: relative;
+}
+.pacs-left {
+  min-width: 38%;
+  position: relative;
+  background: #000;
+}
+.pacs-stage {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  cursor: crosshair;
+}
+.stage-empty {
+  color: #9e9e9e;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+}
+.stage-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.img-stack {
+  position: relative;
+  display: inline-block;
+  transition: filter 0.15s ease;
+}
+.pacs-img {
+  display: block;
+  max-width: none;
+  user-select: none;
+  vertical-align: top;
+}
+.lesion-layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.lesion-box {
+  position: absolute;
+  pointer-events: auto;
+  box-sizing: border-box;
+  border: 2px solid #ff1744;
+  background: rgba(255, 23, 68, 0.12);
+  cursor: help;
+}
+.lesion-box.user-lesion {
+  border-color: #00e676;
+  background: rgba(0, 230, 118, 0.1);
+}
+.ruler-svg {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.brush-canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.lesion-tip {
+  position: absolute;
+  z-index: 5;
+  max-width: 70%;
+  padding: 8px 10px;
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  font-size: 12px;
+  border-radius: 6px;
+  pointer-events: none;
+  line-height: 1.45;
+}
+.pacs-splitter {
+  width: 6px;
+  cursor: col-resize;
+  background: #cfd4dc;
+  flex-shrink: 0;
+  border-left: 1px solid #b0b7c3;
+  border-right: 1px solid #b0b7c3;
+}
+.pacs-splitter:hover {
+  background: #004085;
+}
+.pacs-right {
+  min-width: 28%;
+  background: #eceff3;
+  display: flex;
+  flex-direction: column;
+}
+.rp-scroll {
+  flex: 1;
+  overflow: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.rp-card {
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid #d9dee6;
+  box-shadow: 0 1px 4px rgba(0, 64, 133, 0.06);
+  padding: 12px 14px;
+}
+.rp-card-last {
+  margin-bottom: 8px;
+}
+.rp-title {
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #004085;
+  border-bottom: 1px solid #ebeef5;
+  padding-bottom: 8px;
+}
+.rp-row {
+  font-size: 13px;
+  margin-bottom: 6px;
+  color: #303133;
+}
+.rp-row.big {
+  font-size: 17px;
+  font-weight: 700;
+}
+.rp-meta {
+  font-size: 13px;
+  font-weight: 400;
+  color: #606266;
+  margin-left: 8px;
+}
+.rp-row.muted {
+  color: #909399;
+  font-size: 12px;
+}
+.rp-tags {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.rp-mod {
+  font-size: 12px;
+  color: #909399;
+}
+.rp-mod.ok {
+  color: #2e7d32;
+}
+.rp-mod i {
+  margin-right: 2px;
+}
+.rp-kv {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+.rp-kv span {
+  color: #909399;
+}
+.rp-kv.sm {
+  font-size: 12px;
+}
+.rp-block {
+  margin-top: 8px;
+  font-size: 13px;
+}
+.rp-block .lbl {
+  display: block;
+  color: #004085;
+  font-weight: 600;
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+.rp-block p {
+  margin: 0;
+  line-height: 1.55;
+  color: #303133;
+}
+.sev {
+  color: #c62828;
+}
+.rp-placeholder {
+  font-size: 12px;
+  color: #a0a4aa;
+  padding: 10px 0;
+  text-align: center;
+}
+.rp-pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 12px;
+  line-height: 1.55;
+  color: #424242;
+  max-height: 280px;
+  overflow: auto;
+  background: #fafafa;
+  border-radius: 6px;
+  padding: 10px;
+  border: 1px solid #eee;
+}
+.rp-pre.sm {
+  max-height: 160px;
+}
+.lab-table {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.lab-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+  font-size: 12px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: #f5f7fa;
+  border: 1px solid #e4e7ed;
+}
+.lab-name {
+  font-weight: 600;
+  color: #303133;
+}
+.lab-val {
+  text-align: right;
+  font-weight: 600;
+}
+.lab-ref {
+  grid-column: 1 / -1;
+  font-size: 11px;
+  color: #909399;
+}
+.lab-row.lvl-none .lab-val {
+  color: #2e7d32;
+}
+.lab-row.lvl-mild .lab-val {
+  color: #f9a825;
+  font-weight: 700;
+}
+.lab-row.lvl-severe .lab-val {
+  color: #c62828;
+  font-weight: 800;
+}
+.wl-pop {
+  padding: 4px 0;
+  font-size: 12px;
+  color: #606266;
+}
+.lesion-item {
+  border-top: 1px dashed #ebeef5;
+  padding-top: 8px;
+  margin-top: 8px;
+}
+.li-h {
+  font-weight: 600;
+  color: #004085;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+::v-deep .tb-patient-select .el-input__inner {
+  background: rgba(255, 255, 255, 0.95);
+}
+</style>

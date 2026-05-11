@@ -29,10 +29,10 @@
       <el-table-column label="病灶数量" prop="lesionCount" width="100" align="center">
         <template slot-scope="scope">{{ scope.row.lesionCount || 0 }}</template>
       </el-table-column>
-      <el-table-column label="AI诊断" prop="diagnosis" min-width="220" show-overflow-tooltip />
-      <el-table-column label="操作" width="310" align="center">
+      <el-table-column label="AI诊断摘要" prop="diagnosis" min-width="260" show-overflow-tooltip />
+      <el-table-column label="操作" width="280" align="center">
         <template slot-scope="scope">
-          <el-button size="mini" type="text" icon="el-icon-cpu" @click="handleAnalyze(scope.row)" v-hasPermi="['ai:image:analyze']">AI分析</el-button>
+          <el-button size="mini" type="text" icon="el-icon-monitor" @click="openViewer(scope.row)" v-hasPermi="['ai:image:list']">阅片器</el-button>
           <el-button size="mini" type="text" icon="el-icon-picture" @click="handleCompare(scope.row)" v-hasPermi="['ai:image:view']">查看双图</el-button>
           <el-button size="mini" type="text" icon="el-icon-document" @click="handleRecord(scope.row)" v-hasPermi="['ai:image:record']">查看病历</el-button>
           <el-button size="mini" type="text" icon="el-icon-download" @click="handleExportReport(scope.row)" v-hasPermi="['ai:image:record']">导出报告</el-button>
@@ -69,7 +69,7 @@
 </template>
 
 <script>
-import { listAiImage, analyzeAiImage, getAiImageRecord, exportAiImageReport, aiImageUrl, aiResultPathFromImage } from '@/api/medical/aiImage'
+import { listAiImage, getAiImageRecord, exportAiImageReport, aiImageUrl, aiResultPathFromImage } from '@/api/medical/aiImage'
 import { saveAs } from 'file-saver'
 
 export default {
@@ -118,13 +118,13 @@ export default {
       this.resetForm('queryForm')
       this.handleQuery()
     },
-    handleAnalyze(row) {
-      this.$modal.confirm('确认对该胸片执行AI分析？').then(() => {
-        return analyzeAiImage(row.id)
-      }).then(res => {
-        this.$modal.msgSuccess(res.msg || '检测成功')
-        this.getList()
-      }).catch(() => {})
+    openViewer(row) {
+      const pid = row.patientId
+      if (!pid) {
+        this.$modal.msgWarning('该影像未绑定患者，无法进入阅片器')
+        return
+      }
+      this.$router.push({ path: '/viewer/pacs', query: { patientId: pid, imageId: row.id } }).catch(() => {})
     },
     handleCompare(row) {
       this.current = row

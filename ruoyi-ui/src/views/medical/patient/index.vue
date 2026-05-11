@@ -227,19 +227,7 @@
           </section>
 
           <div class="pdd-footer">
-            <el-button class="pdd-btn pdd-btn--ghost" size="small" icon="el-icon-picture-outline" @click="goImaging(drawerPatientId)">影像上传</el-button>
-            <el-button class="pdd-btn pdd-btn--secondary" size="small" icon="el-icon-document" @click="goStructuredRecord(drawerPatientId)">结构化病历</el-button>
-            <el-tooltip :disabled="drawerMultimodalReady" content="请先完成所有数据绑定" placement="top">
-              <span class="pdd-btn-wrap">
-                <el-button
-                  class="pdd-btn pdd-btn--primary"
-                  size="small"
-                  icon="el-icon-camera"
-                  :disabled="!drawerMultimodalReady"
-                  @click="goAiBench(drawerPatientId)"
-                >AI 诊断</el-button>
-              </span>
-            </el-tooltip>
+            <el-button class="pdd-btn pdd-btn--primary" size="small" icon="el-icon-s-order" type="primary" plain @click="goAssistedFlow(drawerPatientId)">开始辅助诊断</el-button>
             <el-button class="pdd-btn pdd-btn--neutral" size="small" icon="el-icon-edit" @click="openEditFromDrawer" v-hasPermi="['medical:patient:edit']">编辑患者</el-button>
           </div>
         </template>
@@ -337,11 +325,6 @@ export default {
       const roles = this.$store.getters.roles || []
       return roles.map(role => String(role).toLowerCase()).includes('admin')
     },
-    /** 抽屉内：三项多模态是否均已绑定（与卡片逻辑一致） */
-    drawerMultimodalReady() {
-      if (!this.detail || !this.detail.diagnosisSnapshot) return false
-      return this.nzDiag('hasImage') && this.nzDiag('hasMedicalRecord') && this.nzDiag('hasLabResult')
-    },
     /** 第一个未完成步骤下标；若全部完成则为 -1（不高亮待办） */
     drawerCurrentStepIndex() {
       const t = this.detail && this.detail.timeline
@@ -412,19 +395,19 @@ export default {
       const ready = this.nz(row.hasImage) && this.nz(row.hasMedicalRecord) && this.nz(row.hasLabResult)
       const st = Number(row.diagnosisStatus || 0)
       const acts = [{ key: 'detail', label: '查看详情' }]
-      if (!ready) acts.push({ key: 'fill', label: '补全数据', btnType: 'warning' })
+      if (!ready) acts.push({ key: 'fill', label: '补全数据', btnType: 'warning' }) // 进入流水式录入（影像→病历→检验）
       else if (st < 2) acts.push({ key: 'ai', label: '开始 AI 诊断', btnType: 'primary' })
       else if (st >= 2 && st < 4) acts.push({ key: 'report', label: '生成报告' })
-      else acts.push({ key: 'viewer', label: '阅片' })
+      else acts.push({ key: 'viewer', label: '阅片器' })
       return acts
     },
     handleCardAction(key, row) {
       const pid = row.patientId
       if (key === 'detail') this.openDrawer(row)
-      else if (key === 'fill') this.goFillData(pid)
+      else if (key === 'fill') this.goAssistedFlow(pid)
       else if (key === 'ai') this.goAiBench(pid)
       else if (key === 'report') this.goAiBench(pid)
-      else if (key === 'viewer') this.goImaging(pid)
+      else if (key === 'viewer') this.goAiBench(pid)
     },
     openDrawer(row) {
       const pid = row.patientId
@@ -458,25 +441,22 @@ export default {
       const t = ok && when ? `（${this.parseTime(when)}）` : ''
       return `${mark} ${text}${t}`
     },
-    goFillData(patientId) {
+    goAssistedFlow(patientId, step) {
       if (!patientId) return
-      this.$router.push({ path: '/imaging/upload', query: { patientId } }).catch(() => {})
+      const q = { patientId: String(patientId), step: String(step || 1) }
+      this.$router.push({ path: '/assisted-diagnosis/flow', query: q }).catch(() => {})
     },
-    goStructuredRecord(patientId) {
-      if (!patientId) return
-      this.$router.push({ path: '/patient/record', query: { patientId } }).catch(() => {})
+    onBindChipClick(kind) {
+      const pid = this.drawerPatientId
+      if (!pid) return
+      const stepMap = { image: 1, record: 2, lab: 3 }
+      const s = stepMap[kind] || 1
+      this.drawerOpen = false
+      this.goAssistedFlow(pid, s)
     },
     goAiBench(patientId) {
       if (!patientId) return
-      this.$router.push({ path: '/ai-image/analysis', query: { patientId } }).catch(() => {})
-    },
-    goImaging(patientId) {
-      if (!patientId) return
-      this.$router.push({ path: '/imaging/xray', query: { patientId } }).catch(() => {})
-    },
-    goLabData(patientId) {
-      if (!patientId) return
-      this.$router.push({ path: '/patient/lab', query: { patientId } }).catch(() => {})
+      this.$router.push({ path: '/viewer/pacs', query: { patientId } }).catch(() => {})
     },
     openEditFromDrawer() {
       if (!this.drawerPatientId) return
