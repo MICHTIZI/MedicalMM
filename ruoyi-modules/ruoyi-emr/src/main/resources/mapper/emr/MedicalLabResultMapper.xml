@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.emr.mapper.MedicalLabResultMapper">
+
+    <resultMap id="MedicalLabResultResult" type="com.ruoyi.emr.domain.MedicalLabResult">
+        <id property="id" column="id"/>
+        <result property="patientId" column="patient_id"/>
+        <result property="patientName" column="patient_name"/>
+        <result property="testDate" column="test_date"/>
+        <result property="testDoctor" column="test_doctor"/>
+        <result property="testDepartment" column="test_department"/>
+        <result property="temperature" column="temperature"/>
+        <result property="heartRate" column="heart_rate"/>
+        <result property="respiratoryRate" column="respiratory_rate"/>
+        <result property="systolicBp" column="systolic_bp"/>
+        <result property="diastolicBp" column="diastolic_bp"/>
+        <result property="spo2" column="spo2"/>
+        <result property="wbc" column="wbc"/>
+        <result property="neutrophilRatio" column="neutrophil_ratio"/>
+        <result property="lymphocyteRatio" column="lymphocyte_ratio"/>
+        <result property="monocyteRatio" column="monocyte_ratio"/>
+        <result property="platelet" column="platelet"/>
+        <result property="crp" column="crp"/>
+        <result property="pct" column="pct"/>
+        <result property="esr" column="esr"/>
+        <result property="ph" column="ph"/>
+        <result property="po2" column="po2"/>
+        <result property="pco2" column="pco2"/>
+        <result property="hco3" column="hco3"/>
+        <result property="isDeleted" column="is_deleted"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="remark" column="remark"/>
+    </resultMap>
+
+    <sql id="selectMedicalLabResultVo">
+        SELECT l.id, l.patient_id, p.patient_name,
+               l.test_date, l.test_doctor, l.test_department,
+               l.temperature, l.heart_rate, l.respiratory_rate, l.systolic_bp, l.diastolic_bp, l.spo2,
+               l.wbc, l.neutrophil_ratio, l.lymphocyte_ratio, l.monocyte_ratio, l.platelet,
+               l.crp, l.pct, l.esr,
+               l.ph, l.po2, l.pco2, l.hco3,
+               l.is_deleted, l.create_by, l.create_time, l.update_by, l.update_time, l.remark
+        FROM medical_lab_results l
+        LEFT JOIN medical_patient p ON p.patient_id = l.patient_id
+    </sql>
+
+    <select id="selectMedicalLabResultList" parameterType="com.ruoyi.emr.domain.MedicalLabResult" resultMap="MedicalLabResultResult">
+        <include refid="selectMedicalLabResultVo"/>
+        <where>
+            l.is_deleted = 0
+            <if test="patientName != null and patientName != ''">
+                AND p.patient_name LIKE CONCAT('%', #{patientName}, '%')
+            </if>
+            <if test="patientAttendingDoctorIdScope != null">
+                AND p.attending_doctor_id = #{patientAttendingDoctorIdScope}
+            </if>
+        </where>
+        ORDER BY l.test_date DESC, l.id DESC
+    </select>
+
+    <select id="selectMedicalLabResultById" parameterType="Long" resultMap="MedicalLabResultResult">
+        <include refid="selectMedicalLabResultVo"/>
+        WHERE l.id = #{id} AND l.is_deleted = 0
+    </select>
+
+    <insert id="insertMedicalLabResult" parameterType="com.ruoyi.emr.domain.MedicalLabResult" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO medical_lab_results (
+            patient_id, test_date, test_doctor, test_department,
+            temperature, heart_rate, respiratory_rate, systolic_bp, diastolic_bp, spo2,
+            wbc, neutrophil_ratio, lymphocyte_ratio, monocyte_ratio, platelet,
+            crp, pct, esr, ph, po2, pco2, hco3,
+            create_by, create_time, remark, is_deleted
+        ) VALUES (
+            #{patientId}, #{testDate}, #{testDoctor}, #{testDepartment},
+            #{temperature}, #{heartRate}, #{respiratoryRate}, #{systolicBp}, #{diastolicBp}, #{spo2},
+            #{wbc}, #{neutrophilRatio}, #{lymphocyteRatio}, #{monocyteRatio}, #{platelet},
+            #{crp}, #{pct}, #{esr}, #{ph}, #{po2}, #{pco2}, #{hco3},
+            #{createBy}, #{createTime}, #{remark}, 0
+        )
+    </insert>
+
+    <update id="updateMedicalLabResult" parameterType="com.ruoyi.emr.domain.MedicalLabResult">
+        UPDATE medical_lab_results
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="testDate != null">test_date = #{testDate},</if>
+            <if test="testDoctor != null">test_doctor = #{testDoctor},</if>
+            <if test="testDepartment != null">test_department = #{testDepartment},</if>
+            temperature = #{temperature},
+            heart_rate = #{heartRate},
+            respiratory_rate = #{respiratoryRate},
+            systolic_bp = #{systolicBp},
+            diastolic_bp = #{diastolicBp},
+            spo2 = #{spo2},
+            wbc = #{wbc},
+            neutrophil_ratio = #{neutrophilRatio},
+            lymphocyte_ratio = #{lymphocyteRatio},
+            monocyte_ratio = #{monocyteRatio},
+            platelet = #{platelet},
+            crp = #{crp},
+            pct = #{pct},
+            esr = #{esr},
+            ph = #{ph},
+            po2 = #{po2},
+            pco2 = #{pco2},
+            hco3 = #{hco3},
+            remark = #{remark},
+            update_by = #{updateBy},
+            update_time = #{updateTime}
+        </trim>
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+    <update id="logicalDeleteMedicalLabResultByIds">
+        UPDATE medical_lab_results SET is_deleted = 1, update_time = NOW()
+        WHERE is_deleted = 0 AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+</mapper>

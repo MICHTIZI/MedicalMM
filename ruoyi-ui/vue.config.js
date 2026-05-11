@@ -11,6 +11,15 @@ const name = process.env.VUE_APP_TITLE || '肺炎多模态辅助诊断系统' //
 
 const port = process.env.port || process.env.npm_config_port || 80 // 端口
 
+// 本地 dev-server 转发：默认指向网关 8080；直连 ruoyi-emr 无网关时可在 .env.development 配置
+// DEV_PROXY_TARGET=http://localhost:9206 与 DEV_PROXY_STRIP_EMR_PREFIX=1
+const devProxyBaseApi = process.env.VUE_APP_BASE_API || '/dev-api'
+const devProxyTarget = process.env.DEV_PROXY_TARGET || 'http://localhost:8080'
+const devStripEmrForDirectMs = process.env.DEV_PROXY_STRIP_EMR_PREFIX === '1'
+const devProxyPathRewrite = devStripEmrForDirectMs
+    ? { ['^' + devProxyBaseApi + '/emr']: '' }
+    : { ['^' + devProxyBaseApi]: '' }
+
 // vue.config.js 配置说明
 //官方vue.config.js 参考文档 https://cli.vuejs.org/zh/config/#css-loaderoptions
 // 这里只列一部分，具体配置参考文档
@@ -34,11 +43,9 @@ module.exports = {
         proxy: {
             // detail: https://cli.vuejs.org/config/#devserver-proxy
             [process.env.VUE_APP_BASE_API]: {
-                target: `http://localhost:8080`,
+                target: devProxyTarget,
                 changeOrigin: true,
-                pathRewrite: {
-                    ['^' + process.env.VUE_APP_BASE_API]: ''
-                }
+                pathRewrite: devProxyPathRewrite
             },
             // 医疗 AI 推理服务（Python，默认 127.0.0.1:5000）
             '/ai-api': {

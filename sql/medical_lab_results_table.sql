@@ -1,0 +1,37 @@
+-- Patient lab results (run in the same database as ruoyi-emr datasource, e.g. medical_db).
+SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS medical_lab_results (
+    id BIGINT AUTO_INCREMENT COMMENT '检验记录ID' PRIMARY KEY,
+    patient_id BIGINT NOT NULL COMMENT '患者ID',
+    test_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '检验日期',
+    test_doctor VARCHAR(50) NULL COMMENT '检验医生',
+    test_department VARCHAR(50) NULL COMMENT '检验科室',
+    temperature DECIMAL(4,1) NULL COMMENT '体温',
+    heart_rate INT NULL COMMENT '心率',
+    respiratory_rate INT NULL COMMENT '呼吸频率',
+    systolic_bp INT NULL COMMENT '收缩压',
+    diastolic_bp INT NULL COMMENT '舒张压',
+    spo2 DECIMAL(4,1) NULL COMMENT '血氧饱和度',
+    wbc DECIMAL(4,2) NULL COMMENT '白细胞计数',
+    neutrophil_ratio DECIMAL(4,1) NULL COMMENT '中性粒细胞比例',
+    lymphocyte_ratio DECIMAL(4,1) NULL COMMENT '淋巴细胞比例',
+    monocyte_ratio DECIMAL(4,1) NULL COMMENT '单核细胞比例',
+    platelet INT NULL COMMENT '血小板计数',
+    crp DECIMAL(6,1) NULL COMMENT 'C反应蛋白',
+    pct DECIMAL(4,2) NULL COMMENT '降钙素原',
+    esr INT NULL COMMENT '红细胞沉降率',
+    ph DECIMAL(3,2) NULL COMMENT '酸碱度',
+    po2 DECIMAL(4,1) NULL COMMENT '动脉血氧分压',
+    pco2 DECIMAL(4,1) NULL COMMENT '动脉血二氧化碳分压',
+    hco3 DECIMAL(4,1) NULL COMMENT '碳酸氢根',
+    create_by VARCHAR(64) DEFAULT '' NULL,
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP NULL,
+    update_by VARCHAR(64) DEFAULT '' NULL,
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NULL,
+    remark VARCHAR(500) NULL,
+    is_deleted TINYINT DEFAULT 0 NOT NULL,
+    INDEX idx_patient_id (patient_id),
+    INDEX idx_test_date (test_date),
+    CONSTRAINT fk_medical_lab_results_patient FOREIGN KEY (patient_id) REFERENCES medical_patient(patient_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='患者检验指标记录表';

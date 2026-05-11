@@ -1,6 +1,14 @@
 # ÎÄ¼þ±àÂë: UTF-8
 # Merge into Nacos: ruoyi-gateway-dev.yml -> spring.cloud.gateway.server.webflux.routes
 # (YAML list item, same indent as other routes)
+#
+# /lab/** ??????????????? /emr ????? /lab/list??????? Path=/emr/**
+
+            - id: ruoyi-emr-lab
+              uri: lb://ruoyi-emr
+              order: -90
+              predicates:
+                - Path=/lab/**
 
             - id: ruoyi-emr
               uri: lb://ruoyi-emr
