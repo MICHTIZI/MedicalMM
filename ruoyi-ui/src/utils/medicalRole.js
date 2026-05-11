@@ -23,7 +23,6 @@ export function isPhysicianPortalUser(roles) {
  * 登录后默认落地路径（无 redirect 查询参数时由 permission 使用）
  */
 export function defaultHomePath(roles) {
-  if (isPhysicianPortalUser(roles)) return '/physician/workbench'
   return '/'
 }
 

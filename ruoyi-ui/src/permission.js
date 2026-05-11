@@ -6,7 +6,7 @@ import 'nprogress/nprogress.css'
 import { getToken } from '@/utils/auth'
 import { isPathMatch } from '@/utils/validate'
 import { isRelogin } from '@/utils/request'
-import { defaultHomePath, isDefaultEntryPath, isPhysicianPortalUser } from '@/utils/medicalRole'
+import { defaultHomePath } from '@/utils/medicalRole'
 
 NProgress.configure({ showSpinner: false })
 
@@ -44,15 +44,7 @@ router.beforeEach((to, from, next) => {
                     store.dispatch('GenerateRoutes').then(accessRoutes => {
                         // 根据roles权限生成可访问的路由表
                         router.addRoutes(accessRoutes) // 动态添加可访问路由表
-                        const roles = store.getters.roles
-                        const home = defaultHomePath(roles)
-                        const noExplicitRedirect = !to.query || !to.query.redirect
-                        const isLoginEntry = from.path === '/login'
-                        if (((noExplicitRedirect && isDefaultEntryPath(to.path)) || isLoginEntry) && isPhysicianPortalUser(roles) && to.path !== home) {
-                            next({ path: home, replace: true })
-                        } else {
-                            next({ ...to, replace: true }) // hack方法 确保addRoutes已完成
-                        }
+                        next({ ...to, replace: true }) // hack方法 确保addRoutes已完成
                     })
                 }).catch(err => {
                     store.dispatch('LogOut').then(() => {
