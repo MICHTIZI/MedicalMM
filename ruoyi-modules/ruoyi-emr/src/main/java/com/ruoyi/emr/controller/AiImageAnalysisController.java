@@ -36,6 +36,7 @@ import com.ruoyi.emr.domain.MedicalRecord;
 import com.ruoyi.emr.domain.query.ChestXrayQuery;
 import com.ruoyi.emr.service.IAiImageAnalysisService;
 import com.ruoyi.emr.service.IChestXrayService;
+import com.ruoyi.emr.service.IMedicalPatientDiagnosisService;
 import io.minio.GetObjectArgs;
 import io.minio.MinioClient;
 import io.minio.StatObjectArgs;
@@ -56,6 +57,9 @@ public class AiImageAnalysisController extends BaseController
 
     @Autowired
     private MinioConfig minioConfig;
+
+    @Autowired
+    private IMedicalPatientDiagnosisService medicalPatientDiagnosisService;
 
     @RequiresPermissions("ai:image:list")
     @GetMapping("/list")
@@ -119,6 +123,10 @@ public class AiImageAnalysisController extends BaseController
             response.setCharacterEncoding("utf-8");
             response.setHeader("Content-Disposition", "attachment; filename*=UTF-8''" + URLEncoder.encode(fileName, StandardCharsets.UTF_8.name()).replace("+", "%20"));
             doc.write(response.getOutputStream());
+            if (xray.getPatientId() != null)
+            {
+                medicalPatientDiagnosisService.markReportExported(xray.getPatientId());
+            }
         }
         catch (Exception e)
         {

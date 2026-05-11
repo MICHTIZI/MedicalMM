@@ -14,6 +14,7 @@ import com.ruoyi.emr.domain.MedicalPatient;
 import com.ruoyi.emr.mapper.MedicalLabResultMapper;
 import com.ruoyi.emr.mapper.MedicalPatientMapper;
 import com.ruoyi.emr.service.IMedicalLabResultService;
+import com.ruoyi.emr.service.IMedicalPatientDiagnosisService;
 import com.ruoyi.emr.util.LabResultTxtParser;
 
 /**
@@ -27,6 +28,9 @@ public class MedicalLabResultServiceImpl implements IMedicalLabResultService
 
     @Autowired
     private MedicalPatientMapper medicalPatientMapper;
+
+    @Autowired
+    private IMedicalPatientDiagnosisService medicalPatientDiagnosisService;
 
     @Override
     public List<MedicalLabResult> selectMedicalLabResultList(MedicalLabResult query)
@@ -71,7 +75,12 @@ public class MedicalLabResultServiceImpl implements IMedicalLabResultService
         {
             row.setTestDate(now);
         }
-        return medicalLabResultMapper.insertMedicalLabResult(row);
+        int n = medicalLabResultMapper.insertMedicalLabResult(row);
+        if (n > 0 && row.getPatientId() != null)
+        {
+            medicalPatientDiagnosisService.refreshMultimodal(row.getPatientId());
+        }
+        return n;
     }
 
     @Override
@@ -141,7 +150,12 @@ public class MedicalLabResultServiceImpl implements IMedicalLabResultService
         parsed.setCreateTime(now);
         parsed.setUpdateBy(parsed.getCreateBy());
         parsed.setUpdateTime(now);
-        return medicalLabResultMapper.insertMedicalLabResult(parsed);
+        int n = medicalLabResultMapper.insertMedicalLabResult(parsed);
+        if (n > 0)
+        {
+            medicalPatientDiagnosisService.refreshMultimodal(patientId);
+        }
+        return n;
     }
 
     @Override

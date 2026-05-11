@@ -46,6 +46,7 @@ import com.ruoyi.emr.domain.MedicalPatient;
 import com.ruoyi.emr.domain.query.ChestXrayQuery;
 import com.ruoyi.emr.mapper.MedicalPatientMapper;
 import com.ruoyi.emr.service.IChestXrayService;
+import com.ruoyi.emr.service.IMedicalPatientDiagnosisService;
 import io.minio.BucketExistsArgs;
 import io.minio.GetObjectArgs;
 import io.minio.MakeBucketArgs;
@@ -74,6 +75,9 @@ public class ChestXrayController extends BaseController
 
     @Autowired
     private MedicalPatientMapper medicalPatientMapper;
+
+    @Autowired
+    private IMedicalPatientDiagnosisService medicalPatientDiagnosisService;
 
     /* =============== 列表 / 详情 =============== */
 
@@ -108,7 +112,12 @@ public class ChestXrayController extends BaseController
     public AjaxResult add(@RequestBody ChestXray entity)
     {
         entity.setCreateTime(new Date());
-        return toAjax(chestXrayService.save(entity));
+        boolean ok = chestXrayService.save(entity);
+        if (ok && entity.getPatientId() != null)
+        {
+            medicalPatientDiagnosisService.refreshMultimodal(entity.getPatientId());
+        }
+        return toAjax(ok);
     }
 
     @RequiresPermissions("imaging:xray:edit")
@@ -199,6 +208,7 @@ public class ChestXrayController extends BaseController
             chestXrayService.save(entity);
             saved.add(entity);
         }
+        medicalPatientDiagnosisService.refreshMultimodal(patient.getPatientId());
         return AjaxResult.success("成功上传 " + saved.size() + " 张影像", saved);
     }
 

@@ -21,6 +21,7 @@ import com.ruoyi.common.log.enums.BusinessType;
 import com.ruoyi.common.security.annotation.RequiresPermissions;
 import com.ruoyi.emr.domain.MedicalPatient;
 import com.ruoyi.emr.domain.vo.DoctorOptionVo;
+import com.ruoyi.emr.domain.vo.PatientCardVo;
 import com.ruoyi.emr.service.IMedicalPatientService;
 
 /**
@@ -42,6 +43,22 @@ public class MedicalPatientController extends BaseController
         return getDataTable(list);
     }
 
+    @RequiresPermissions("medical:patient:list")
+    @GetMapping("/cardList")
+    public TableDataInfo cardList(MedicalPatient patient)
+    {
+        startPage();
+        List<PatientCardVo> list = medicalPatientService.selectPatientCardList(patient);
+        return getDataTable(list);
+    }
+
+    @RequiresPermissions("medical:patient:query")
+    @GetMapping("/diagnosisDetail/{patientId:\\d+}")
+    public AjaxResult diagnosisDetail(@PathVariable("patientId") Long patientId)
+    {
+        return success(medicalPatientService.selectPatientDiagnosisDetail(patientId));
+    }
+
     @RequiresPermissions("medical:patient:export")
     @Log(title = "Patient Management", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
@@ -53,7 +70,7 @@ public class MedicalPatientController extends BaseController
     }
 
     @RequiresPermissions("medical:patient:query")
-    @GetMapping(value = "/{patientId}")
+    @GetMapping(value = "/{patientId:\\d+}")
     public AjaxResult getInfo(@PathVariable("patientId") Long patientId)
     {
         return success(medicalPatientService.selectMedicalPatientByPatientId(patientId));
@@ -77,7 +94,7 @@ public class MedicalPatientController extends BaseController
 
     @RequiresPermissions("medical:patient:remove")
     @Log(title = "Patient Management", businessType = BusinessType.DELETE)
-    @DeleteMapping("/{patientIds}")
+    @DeleteMapping("/{patientIds:\\d+(?:,\\d+)*}")
     public AjaxResult remove(@PathVariable Long[] patientIds)
     {
         return toAjax(medicalPatientService.deleteMedicalPatientByPatientIds(patientIds));

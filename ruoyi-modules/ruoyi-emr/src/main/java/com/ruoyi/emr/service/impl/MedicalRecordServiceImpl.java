@@ -11,6 +11,7 @@ import com.ruoyi.emr.domain.MedicalPatient;
 import com.ruoyi.emr.domain.MedicalRecord;
 import com.ruoyi.emr.domain.vo.XrayOptionVo;
 import com.ruoyi.emr.mapper.MedicalRecordMapper;
+import com.ruoyi.emr.service.IMedicalPatientDiagnosisService;
 import com.ruoyi.emr.service.IMedicalRecordService;
 import com.ruoyi.system.api.model.LoginUser;
 
@@ -22,6 +23,9 @@ public class MedicalRecordServiceImpl implements IMedicalRecordService
 {
     @Autowired
     private MedicalRecordMapper medicalRecordMapper;
+
+    @Autowired
+    private IMedicalPatientDiagnosisService medicalPatientDiagnosisService;
 
     @Override
     public List<MedicalRecord> selectMedicalRecordList(MedicalRecord record)
@@ -51,7 +55,12 @@ public class MedicalRecordServiceImpl implements IMedicalRecordService
         checkImageUnique(null, record.getImageId());
         record.setCreateBy(SecurityUtils.getUsername());
         record.setCreateTime(new Date());
-        return medicalRecordMapper.insertMedicalRecord(record);
+        int n = medicalRecordMapper.insertMedicalRecord(record);
+        if (n > 0 && record.getPatientId() != null)
+        {
+            medicalPatientDiagnosisService.refreshMultimodal(record.getPatientId());
+        }
+        return n;
     }
 
     @Override

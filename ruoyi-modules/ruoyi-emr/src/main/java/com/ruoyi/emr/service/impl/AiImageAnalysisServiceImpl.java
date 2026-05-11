@@ -17,6 +17,7 @@ import com.ruoyi.emr.domain.ChestXray;
 import com.ruoyi.emr.domain.MedicalRecord;
 import com.ruoyi.emr.domain.vo.AiDetectResponseVo;
 import com.ruoyi.emr.mapper.AiImageAnalysisMapper;
+import com.ruoyi.emr.service.IMedicalPatientDiagnosisService;
 import com.ruoyi.emr.mapper.MedicalPatientMapper;
 import com.ruoyi.emr.service.IAiImageAnalysisService;
 import com.ruoyi.emr.service.IChestXrayService;
@@ -43,6 +44,9 @@ public class AiImageAnalysisServiceImpl implements IAiImageAnalysisService
 
     @Autowired
     private MinioConfig minioConfig;
+
+    @Autowired
+    private IMedicalPatientDiagnosisService medicalPatientDiagnosisService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -73,6 +77,10 @@ public class AiImageAnalysisServiceImpl implements IAiImageAnalysisService
         Integer lesionCount = result.getLesionCount() == null ? 0 : result.getLesionCount();
         aiImageAnalysisMapper.updateXrayAiResult(xray.getId(), result.getAiResultPath(), lesionCount, result.getDiagnosis());
         saveGeneratedRecord(xray, result, lesionCount);
+        if (xray.getPatientId() != null)
+        {
+            medicalPatientDiagnosisService.markAiCompleted(xray.getPatientId());
+        }
         return result;
     }
 

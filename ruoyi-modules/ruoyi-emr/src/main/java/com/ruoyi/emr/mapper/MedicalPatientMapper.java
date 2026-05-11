@@ -4,6 +4,7 @@ import java.util.List;
 import org.apache.ibatis.annotations.Param;
 import com.ruoyi.emr.domain.MedicalPatient;
 import com.ruoyi.emr.domain.vo.DoctorOptionVo;
+import com.ruoyi.emr.domain.vo.PatientCardVo;
 
 /**
  * Patient mapper.
@@ -11,6 +12,8 @@ import com.ruoyi.emr.domain.vo.DoctorOptionVo;
 public interface MedicalPatientMapper
 {
     List<MedicalPatient> selectMedicalPatientList(MedicalPatient patient);
+
+    List<PatientCardVo> selectPatientCardVoList(MedicalPatient patient);
 
     MedicalPatient selectMedicalPatientByPatientId(Long patientId);
 

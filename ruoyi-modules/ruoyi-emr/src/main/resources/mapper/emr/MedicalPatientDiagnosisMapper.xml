@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.emr.mapper.MedicalPatientDiagnosisMapper">
+
+    <resultMap id="DiagnosisResult" type="com.ruoyi.emr.domain.MedicalPatientDiagnosis">
+        <id property="id" column="id"/>
+        <result property="patientId" column="patient_id"/>
+        <result property="hasImage" column="has_image"/>
+        <result property="hasMedicalRecord" column="has_medical_record"/>
+        <result property="hasLabResult" column="has_lab_result"/>
+        <result property="diagnosisStatus" column="diagnosis_status"/>
+        <result property="hasDiagnosisReport" column="has_diagnosis_report"/>
+        <result property="firstImageUploadTime" column="first_image_upload_time"/>
+        <result property="lastDiagnosisTime" column="last_diagnosis_time"/>
+        <result property="reportGenerateTime" column="report_generate_time"/>
+        <result property="doctorAuditTime" column="doctor_audit_time"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="isDeleted" column="is_deleted"/>
+    </resultMap>
+
+    <select id="selectByPatientId" resultMap="DiagnosisResult">
+        SELECT id, patient_id, has_image, has_medical_record, has_lab_result,
+               diagnosis_status, has_diagnosis_report,
+               first_image_upload_time, last_diagnosis_time, report_generate_time, doctor_audit_time,
+               create_time, update_time, is_deleted
+        FROM medical_patient_diagnosis
+        WHERE patient_id = #{patientId}
+          AND (is_deleted = 0 OR is_deleted IS NULL)
+        LIMIT 1
+    </select>
+
+    <insert id="insert" parameterType="com.ruoyi.emr.domain.MedicalPatientDiagnosis" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO medical_patient_diagnosis
+        (patient_id, has_image, has_medical_record, has_lab_result, diagnosis_status, has_diagnosis_report, is_deleted, create_time, update_time)
+        VALUES
+        (#{patientId}, #{hasImage}, #{hasMedicalRecord}, #{hasLabResult}, #{diagnosisStatus}, #{hasDiagnosisReport}, 0, NOW(), NOW())
+    </insert>
+
+    <update id="updateMultimodalByPatientId">
+        UPDATE medical_patient_diagnosis
+        SET has_image = IF((SELECT COUNT(*) FROM chest_xray c WHERE c.patient_id = #{patientId}) > 0, 1, 0),
+            has_medical_record = IF((SELECT COUNT(*) FROM medical_record r WHERE r.patient_id = #{patientId}) > 0, 1, 0),
+            has_lab_result = IF((SELECT COUNT(*) FROM medical_lab_results l WHERE l.patient_id = #{patientId} AND (l.is_deleted = 0 OR l.is_deleted IS NULL)) > 0, 1, 0),
+            first_image_upload_time = (SELECT MIN(c.create_time) FROM chest_xray c WHERE c.patient_id = #{patientId}),
+            update_time = NOW()
+        WHERE patient_id = #{patientId}
+          AND (is_deleted = 0 OR is_deleted IS NULL)
+    </update>
+
+    <!-- After AI succeeds: multimodal refresh + diagnosis done -->
+    <update id="updateDiagnosisAfterAi">
+        UPDATE medical_patient_diagnosis
+        SET has_image = IF((SELECT COUNT(*) FROM chest_xray c WHERE c.patient_id = #{patientId}) > 0, 1, 0),
+            has_medical_record = IF((SELECT COUNT(*) FROM medical_record r WHERE r.patient_id = #{patientId}) > 0, 1, 0),
+            has_lab_result = IF((SELECT COUNT(*) FROM medical_lab_results l WHERE l.patient_id = #{patientId} AND (l.is_deleted = 0 OR l.is_deleted IS NULL)) > 0, 1, 0),
+            first_image_upload_time = (SELECT MIN(c.create_time) FROM chest_xray c WHERE c.patient_id = #{patientId}),
+            diagnosis_status = CASE WHEN diagnosis_status &lt; 2 THEN 2 ELSE diagnosis_status END,
+            last_diagnosis_time = NOW(),
+            update_time = NOW()
+        WHERE patient_id = #{patientId}
+          AND (is_deleted = 0 OR is_deleted IS NULL)
+    </update>
+
+    <update id="updateReportExported">
+        UPDATE medical_patient_diagnosis
+        SET has_diagnosis_report = 1,
+            diagnosis_status = 4,
+            report_generate_time = NOW(),
+            update_time = NOW()
+        WHERE patient_id = #{patientId}
+          AND (is_deleted = 0 OR is_deleted IS NULL)
+    </update>
+
+    <select id="selectFirstRecordTime" resultType="java.util.Date">
+        SELECT MIN(r.create_time) FROM medical_record r WHERE r.patient_id = #{patientId}
+    </select>
+
+    <select id="selectFirstLabTime" resultType="java.util.Date">
+        SELECT MIN(l.test_date) FROM medical_lab_results l
+        WHERE l.patient_id = #{patientId} AND (l.is_deleted = 0 OR l.is_deleted IS NULL)
+    </select>
+</mapper>

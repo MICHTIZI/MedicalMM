@@ -8,6 +8,22 @@ export function listPatient(query) {
   })
 }
 
+/** 工作台卡片分页（姓名筛选 + 诊断状态聚合） */
+export function listPatientCards(query) {
+  return request({
+    url: '/emr/patient/cardList',
+    method: 'get',
+    params: query
+  })
+}
+
+export function getPatientDiagnosisDetail(patientId) {
+  return request({
+    url: '/emr/patient/diagnosisDetail/' + patientId,
+    method: 'get'
+  })
+}
+
 export function getPatient(patientId) {
   return request({
     url: '/emr/patient/' + patientId,

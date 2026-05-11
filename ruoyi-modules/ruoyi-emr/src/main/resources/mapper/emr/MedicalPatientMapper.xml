@@ -47,6 +47,54 @@
         ORDER BY create_time DESC, patient_id DESC
     </select>
 
+    <resultMap id="PatientCardVoResult" type="com.ruoyi.emr.domain.vo.PatientCardVo">
+        <result property="patientId" column="patient_id"/>
+        <result property="patientName" column="patient_name"/>
+        <result property="gender" column="gender"/>
+        <result property="age" column="age"/>
+        <result property="phone" column="phone"/>
+        <result property="attendingDoctor" column="attending_doctor"/>
+        <result property="patientCreateTime" column="patient_create_time"/>
+        <result property="hasImage" column="has_image"/>
+        <result property="hasMedicalRecord" column="has_medical_record"/>
+        <result property="hasLabResult" column="has_lab_result"/>
+        <result property="diagnosisStatus" column="diagnosis_status"/>
+        <result property="hasDiagnosisReport" column="has_diagnosis_report"/>
+        <result property="lastDiagnosisTime" column="last_diagnosis_time"/>
+        <result property="latestAiDiagnosis" column="latest_ai_diagnosis"/>
+        <result property="latestLesionCount" column="latest_lesion_count"/>
+    </resultMap>
+
+    <select id="selectPatientCardVoList" parameterType="com.ruoyi.emr.domain.MedicalPatient" resultMap="PatientCardVoResult">
+        SELECT
+            p.patient_id,
+            p.patient_name,
+            p.gender,
+            p.age,
+            p.phone,
+            p.attending_doctor,
+            p.create_time AS patient_create_time,
+            IFNULL(d.has_image, 0) AS has_image,
+            IFNULL(d.has_medical_record, 0) AS has_medical_record,
+            IFNULL(d.has_lab_result, 0) AS has_lab_result,
+            IFNULL(d.diagnosis_status, 0) AS diagnosis_status,
+            IFNULL(d.has_diagnosis_report, 0) AS has_diagnosis_report,
+            d.last_diagnosis_time,
+            (SELECT cx.diagnosis FROM chest_xray cx WHERE cx.patient_id = p.patient_id ORDER BY cx.create_time DESC LIMIT 1) AS latest_ai_diagnosis,
+            (SELECT cx.lesion_count FROM chest_xray cx WHERE cx.patient_id = p.patient_id ORDER BY cx.create_time DESC LIMIT 1) AS latest_lesion_count
+        FROM medical_patient p
+        LEFT JOIN medical_patient_diagnosis d ON d.patient_id = p.patient_id AND (d.is_deleted = 0 OR d.is_deleted IS NULL)
+        <where>
+            <if test="patientName != null and patientName != ''">
+                AND p.patient_name LIKE CONCAT('%', #{patientName}, '%')
+            </if>
+            <if test="attendingDoctorId != null">
+                AND p.attending_doctor_id = #{attendingDoctorId}
+            </if>
+        </where>
+        ORDER BY p.create_time DESC, p.patient_id DESC
+    </select>
+
     <select id="selectMedicalPatientByPatientId" parameterType="Long" resultMap="MedicalPatientResult">
         <include refid="selectMedicalPatientVo" />
         WHERE patient_id = #{patientId}
