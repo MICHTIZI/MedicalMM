@@ -3,7 +3,7 @@
     <div class="af-toolbar">
       <el-button type="text" icon="el-icon-back" class="af-back" @click="backToPatients">返回患者列表</el-button>
       <div class="af-toolbar-center">
-        <span class="af-title">辅助诊断 · 多模态录入</span>
+        <span class="af-title">流水式辅助诊断 · 三步录入</span>
         <el-tag v-if="patientName" type="info" effect="dark" size="small">{{ patientName }}（ID {{ patientId }}）</el-tag>
       </div>
       <span />
@@ -11,18 +11,18 @@
 
     <el-card shadow="never" class="af-steps-card">
       <el-steps :active="stepIndex" finish-status="success" align-center>
-        <el-step title="影像上传" description="胸片 / DICOM" />
-        <el-step title="结构化病历" description="病史与绑定胸片" />
-        <el-step title="检验指标" description="生命体征与实验室" />
+        <el-step title="影像上传" description="PNG / JPG / DICOM" />
+        <el-step title="结构化病历" description="主诉、病史与胸片关联" />
+        <el-step title="检验指标" description="生命体征与实验室数据" />
       </el-steps>
     </el-card>
 
     <el-card v-show="stepIndex === 0" shadow="never" class="af-panel">
       <div class="af-panel-head">
-        <h2>步骤 1 / 3 — 影像上传</h2>
-        <p class="af-muted">患者已锁定。支持 PNG / JPG / DICOM，可批量上传。若已有影像将列出。</p>
+        <h2>第 1 / 3 步 — 影像上传</h2>
+        <p class="af-muted">支持拖拽或点击上传 PNG / JPG / DICOM；切换患者后会清空待上传列表并重新加载该患者已有影像。</p>
       </div>
-      <el-alert v-if="imageRows.length" :title="'当前患者已有 ' + imageRows.length + ' 条影像，可追加上传或进入下一步。'" type="success" show-icon class="af-mb" />
+      <el-alert v-if="imageRows.length" :title="'该患者已有影像 ' + imageRows.length + ' 条，可直接进入下一步或继续上传。'" type="success" show-icon class="af-mb" />
       <el-form ref="uploadFormRef" :model="uploadForm" :rules="uploadRules" label-width="88px" size="small" class="af-form">
         <el-form-item label="患者" prop="patientId">
           <el-input :value="patientLabel" disabled style="max-width: 360px" />
@@ -41,7 +41,7 @@
         class="af-upload"
       >
         <i class="el-icon-upload" />
-        <div class="el-upload__text">将文件拖到此处，或<em>点击选择</em></div>
+        <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
         <div slot="tip" class="el-upload__tip">支持 PNG / JPG / DICOM</div>
       </el-upload>
       <el-progress v-if="uploading" :percentage="uploadProgress" class="af-mt" />
@@ -58,23 +58,23 @@
         <el-table-column label="ID" prop="id" width="72" />
       </el-table>
       <div class="af-footer-btns">
-        <el-button type="primary" :disabled="!canLeaveStep1" @click="goStep(2)">下一步：结构化病历</el-button>
+        <el-button type="primary" :disabled="!canLeaveStep1" @click="goStep(2)">已有影像，进入下一步</el-button>
       </div>
     </el-card>
 
     <el-card v-show="stepIndex === 1" shadow="never" class="af-panel">
       <div class="af-panel-head">
-        <h2>步骤 2 / 3 — 结构化病历</h2>
-        <p class="af-muted">{{ recordForm.recordId ? '已加载历史病历，可修改后保存。' : '请填写并绑定胸片。' }}</p>
+        <h2>第 2 / 3 步 — 结构化病历</h2>
+        <p class="af-muted">{{ recordForm.recordId ? '已加载历史病历，修改后保存将更新记录。' : '请填写病历并关联胸片。' }}</p>
       </div>
       <el-form ref="recordFormRef" :model="recordForm" :rules="recordRules" label-width="110px" size="small" class="af-form">
         <el-form-item label="患者">
           <el-input :value="patientLabel" disabled style="max-width: 360px" />
         </el-form-item>
         <el-row :gutter="8" class="af-mb">
-          <el-button type="info" plain icon="el-icon-upload2" size="small" @click="$refs.afTxtInput.click()">导入 TXT 病历</el-button>
+          <el-button type="info" plain icon="el-icon-upload2" size="small" @click="$refs.afTxtInput.click()">导入病历 TXT</el-button>
           <input ref="afTxtInput" type="file" accept=".txt,text/plain" style="display:none" @change="handleTxtImport">
-          <el-button type="primary" plain icon="el-icon-picture-outline" size="small" @click="openXrayPicker">绑定胸片</el-button>
+          <el-button type="primary" plain icon="el-icon-picture-outline" size="small" @click="openXrayPicker">选择胸片</el-button>
         </el-row>
         <el-form-item label="主诉" prop="chiefComplaint">
           <el-input v-model="recordForm.chiefComplaint" type="textarea" :rows="3" placeholder="主诉" />
@@ -91,12 +91,12 @@
         <el-form-item label="初步诊断" prop="initialDiagnosis">
           <el-input v-model="recordForm.initialDiagnosis" type="textarea" :rows="3" placeholder="初步诊断" />
         </el-form-item>
-        <el-form-item label="已绑定胸片" prop="imageId">
+        <el-form-item label="已选胸片" prop="imageId">
           <div v-if="recordForm.imagePath" class="af-xray-preview">
             <el-image :src="thumbUrl(recordForm.imagePath)" style="width:120px;height:120px" fit="cover" :preview-src-list="[thumbUrl(recordForm.imagePath)]" />
             <span class="af-muted af-path">{{ recordForm.imagePath }}</span>
           </div>
-          <span v-else class="af-muted">未绑定</span>
+          <span v-else class="af-muted">暂无</span>
         </el-form-item>
         <el-form-item label="AI 结果路径" prop="aiResultPath">
           <el-input v-model="recordForm.aiResultPath" placeholder="可选" />
@@ -110,16 +110,17 @@
 
     <el-card v-show="stepIndex === 2" shadow="never" class="af-panel">
       <div class="af-panel-head">
-        <h2>步骤 3 / 3 — 检验指标</h2>
-        <p class="af-muted">{{ labForm.id ? '已加载历史检验，可修改后保存。' : '录入或导入检验数据。' }}</p>
+        <h2>第 3 / 3 步 — 检验指标</h2>
+        <p class="af-muted">{{ labForm.id ? '已加载历史检验，修改后保存将更新记录。' : '录入检验相关数据。' }}</p>
       </div>
       <el-form ref="labFormRef" :model="labForm" :rules="labRules" label-width="120px" size="small" class="af-form">
         <el-form-item label="患者">
           <el-input :value="patientLabel" disabled style="max-width: 360px" />
         </el-form-item>
-        <el-form-item v-if="!labForm.id" label="检验 TXT">
-          <el-button type="info" plain icon="el-icon-upload2" size="small" @click="$refs.afLabTxt.click()" v-hasPermi="['medical:lab:import']">选择 TXT 解析填入</el-button>
+        <el-form-item label="检验 TXT">
+          <el-button type="info" plain icon="el-icon-upload2" size="small" @click="$refs.afLabTxt.click()" v-hasPermi="['medical:lab:import']">选择 TXT 解析导入</el-button>
           <input ref="afLabTxt" type="file" accept=".txt,text/plain" style="display:none" @change="handleLabTxtImport">
+          <span class="af-muted" style="margin-left:10px">解析结果将合并到当前表单；若已有检验记录 ID，保存时为更新。</span>
         </el-form-item>
         <el-form-item label="检验时间" prop="testDate">
           <el-date-picker v-model="labForm.testDate" type="datetime" value-format="yyyy-MM-dd HH:mm:ss" placeholder="检验时间" style="width: 100%; max-width: 360px" />
@@ -168,7 +169,7 @@
       </el-form>
       <div class="af-footer-btns">
         <el-button @click="goStep(2)">上一步</el-button>
-        <el-button type="primary" :loading="labSaving" @click="saveLabAndFinish">保存并进入阅片器</el-button>
+        <el-button type="primary" :loading="labSaving" @click="saveLabAndFinish">保存并打开阅片</el-button>
       </div>
     </el-card>
 
@@ -182,7 +183,7 @@
         <el-table-column label="文件名" prop="imageName" min-width="160" show-overflow-tooltip />
         <el-table-column label="操作" width="88" align="center">
           <template slot-scope="scope">
-            <el-button type="text" size="small" @click="selectXrayRow(scope.row)">选择</el-button>
+            <el-button type="text" size="small" @click="selectXrayRow(scope.row)">选用</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -211,7 +212,7 @@ export default {
       uploadResults: [],
       uploadForm: { patientId: undefined },
       uploadRules: {
-        patientId: [{ required: true, message: '缺少患者', trigger: 'change' }]
+        patientId: [{ required: true, message: '请选择患者', trigger: 'change' }]
       },
       recordForm: {
         recordId: undefined,
@@ -226,12 +227,12 @@ export default {
         aiResultPath: undefined
       },
       recordRules: {
-        chiefComplaint: [{ required: true, message: '请输入主诉', trigger: 'blur' }],
-        presentHistory: [{ required: true, message: '请输入现病史', trigger: 'blur' }],
-        pastHistory: [{ required: true, message: '请输入既往史', trigger: 'blur' }],
-        physicalExam: [{ required: true, message: '请输入体格检查', trigger: 'blur' }],
-        initialDiagnosis: [{ required: true, message: '请输入初步诊断', trigger: 'blur' }],
-        imageId: [{ required: true, message: '请绑定胸片', trigger: 'change' }]
+        chiefComplaint: [{ required: true, message: '请填写主诉', trigger: 'blur' }],
+        presentHistory: [{ required: true, message: '请填写现病史', trigger: 'blur' }],
+        pastHistory: [{ required: true, message: '请填写既往史', trigger: 'blur' }],
+        physicalExam: [{ required: true, message: '请填写体格检查', trigger: 'blur' }],
+        initialDiagnosis: [{ required: true, message: '请填写初步诊断', trigger: 'blur' }],
+        imageId: [{ required: true, message: '请选择胸片', trigger: 'change' }]
       },
       recordSaving: false,
       labForm: {
@@ -367,7 +368,19 @@ export default {
       this.loadPatientAndData()
     },
     loadPatientAndData() {
-      getPatient(this.patientId).then(res => {
+      const pid = this.patientId
+      // 切换患者：清空上传队列与表单，再按患者拉取影像与预填数据
+      this.fileList = []
+      this.uploadResults = []
+      this.uploading = false
+      this.uploadProgress = 0
+      if (this.$refs.uploader) {
+        try { this.$refs.uploader.clearFiles() } catch (e) { /* noop */ }
+      }
+      this.recordForm = { ...this.defaultRecordForm(), patientId: pid }
+      this.labForm = { ...this.emptyLabForm(), patientId: pid, testDate: this.formatNow() }
+
+      getPatient(pid).then(res => {
         const d = res.data || {}
         this.patientName = d.patientName || ''
       }).catch(() => {})
@@ -394,39 +407,56 @@ export default {
         this.$set(this.recordForm, 'imagePath', r.imagePath)
       }
     },
+    /** 有病历时取最新一条详情填充；无则空表。检验同理（依赖 refreshImages 已更新 imageRows）。 */
     loadPrefills() {
       const pid = this.patientId
+      const emptyRecord = () => ({ ...this.defaultRecordForm(), patientId: pid })
+      const emptyLab = () => ({ ...this.emptyLabForm(), patientId: pid, testDate: this.formatNow() })
+
       const recP = listMedicalRecord({ patientId: pid, pageNum: 1, pageSize: 80 })
         .then(res => {
           const rows = res.rows || []
           if (!rows.length) {
-            this.recordForm = { ...this.defaultRecordForm(), patientId: pid }
+            this.recordForm = emptyRecord()
             return
           }
           const latest = [...rows].sort((a, b) => new Date(b.createTime || 0) - new Date(a.createTime || 0))[0]
           const rid = latest.recordId != null ? latest.recordId : latest.id
+          if (rid == null) {
+            this.recordForm = emptyRecord()
+            return
+          }
           return getMedicalRecord(rid).then(r2 => {
-            this.recordForm = { ...this.defaultRecordForm(), ...(r2.data || {}), patientId: pid }
+            const data = r2.data || {}
+            this.recordForm = { ...emptyRecord(), ...data, patientId: pid }
           })
         })
         .catch(() => {
-          this.recordForm = { ...this.defaultRecordForm(), patientId: pid }
+          this.recordForm = emptyRecord()
         })
+
       const labP = listLab({ patientId: pid, pageNum: 1, pageSize: 80 })
         .then(res => {
           const rows = res.rows || []
           if (!rows.length) {
-            this.labForm = { ...this.emptyLabForm(), patientId: pid, testDate: this.formatNow() }
+            this.labForm = emptyLab()
             return
           }
           const latest = [...rows].sort((a, b) => new Date(b.testDate || 0) - new Date(a.testDate || 0))[0]
-          return getLab(latest.id).then(r2 => {
-            this.labForm = { ...this.emptyLabForm(), ...(r2.data || {}), patientId: pid }
+          const lid = latest.id
+          if (lid == null) {
+            this.labForm = emptyLab()
+            return
+          }
+          return getLab(lid).then(r2 => {
+            const data = r2.data || {}
+            this.labForm = { ...emptyLab(), ...data, patientId: pid }
           })
         })
         .catch(() => {
-          this.labForm = { ...this.emptyLabForm(), patientId: pid, testDate: this.formatNow() }
+          this.labForm = emptyLab()
         })
+
       return Promise.all([recP, labP])
     },
     goStep(step) {
@@ -508,9 +538,10 @@ export default {
       ]
       fields.forEach((field, index) => {
         const next = fields[index + 1]
+        const sep = '[：:]\\s*'
         const pattern = next
-          ? new RegExp(field.label + '[:：]([\\s\\S]*?)(?=' + next.label + '[:：])')
-          : new RegExp(field.label + '[:：]([\\s\\S]*)')
+          ? new RegExp(field.label + sep + '([\\s\\S]*?)(?=' + next.label + sep + ')')
+          : new RegExp(field.label + sep + '([\\s\\S]*)')
         const match = text.match(pattern)
         if (match) this.$set(this.recordForm, field.key, match[1].trim())
       })
@@ -521,7 +552,7 @@ export default {
         this.recordSaving = true
         const req = this.recordForm.recordId ? updateMedicalRecord(this.recordForm) : addMedicalRecord(this.recordForm)
         req.then(() => {
-          this.$modal.msgSuccess('病历已保存')
+          this.$modal.msgSuccess('保存成功')
           this.goStep(3)
         }).finally(() => { this.recordSaving = false })
       })
@@ -532,16 +563,17 @@ export default {
       const file = files[0]
       parseLabTxt(file).then(res => {
         const parsed = res.data || {}
-        const base = { ...this.emptyLabForm(), patientId: this.patientId, testDate: this.labForm.testDate || this.formatNow() }
         const skip = ['id', 'patientId', 'patientName', 'patientAttendingDoctorIdScope', 'isDeleted', 'params', 'searchValue']
+        const merged = { ...this.emptyLabForm(), ...this.labForm, patientId: this.patientId }
+        if (!merged.testDate) merged.testDate = this.formatNow()
         Object.keys(parsed).forEach(key => {
           if (skip.includes(key)) return
           const v = parsed[key]
-          if (v !== undefined && v !== null) base[key] = v
+          if (v !== undefined && v !== null) merged[key] = v
         })
-        this.labForm = base
+        this.labForm = merged
         this.$nextTick(() => this.$refs.labFormRef && this.$refs.labFormRef.clearValidate())
-        this.$modal.msgSuccess('已从 TXT 填充，请核对后保存')
+        this.$modal.msgSuccess('已从 TXT 合并检验数据，可继续编辑后保存。')
       }).finally(() => { e.target.value = '' })
     },
     saveLabAndFinish() {
@@ -550,7 +582,7 @@ export default {
         this.labSaving = true
         const api = this.labForm.id ? updateLab : addLab
         api(this.labForm).then(() => {
-          this.$modal.msgSuccess('检验已保存')
+          this.$modal.msgSuccess('保存成功')
           return this.refreshImages()
         }).then(() => {
           const firstImg = (this.imageRows && this.imageRows[0]) || null

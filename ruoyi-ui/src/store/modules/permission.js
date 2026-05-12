@@ -80,7 +80,7 @@ const permission = {
 function filterAsyncRouter(asyncRouterMap, lastRouter = false, type = false) {
     return asyncRouterMap.filter(route => {
         if (type && route.children) {
-            route.children = filterChildren(route.children)
+            route.children = filterChildren(route.children, route)
         }
         if (route.component) {
             // Layout ParentView 组件特殊处理
@@ -107,7 +107,14 @@ function filterAsyncRouter(asyncRouterMap, lastRouter = false, type = false) {
 function filterChildren(childrenMap, lastRouter = false) {
     var children = []
     childrenMap.forEach(el => {
-        el.path = lastRouter ? lastRouter.path + '/' + el.path : el.path
+        if (lastRouter && lastRouter.path && el.path) {
+            const seg = String(el.path)
+            // 以 / 开头为应用内绝对路径（如 /patient/list），不再与父目录拼接
+            if (!seg.startsWith('/')) {
+                const lp = String(lastRouter.path).replace(/\/$/, '')
+                el.path = lp ? lp + '/' + seg : seg
+            }
+        }
         if (el.children && el.children.length && el.component === 'ParentView') {
             children = children.concat(filterChildren(el.children, el))
         } else {

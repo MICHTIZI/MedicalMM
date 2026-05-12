@@ -159,7 +159,8 @@ public class ChestXrayController extends BaseController
             }
             catch (Exception e)
             {
-                return error("上传文件失败 [" + originalName + "]: " + e.getMessage());
+                log.warn("影像上传失败 file={} err={}", originalName, e.toString());
+                return error("上传文件失败 [" + originalName + "]: " + formatMinioUploadMessage(e.getMessage()));
             }
 
             int w = 224, h = 224;
@@ -247,6 +248,25 @@ public class ChestXrayController extends BaseController
             log.warn("Image proxy 404: bucket={}, objectKey={}, error={}", minioConfig.getBucketName(), objectKey, e.getMessage());
             response.setStatus(404);
         }
+    }
+
+    /**
+     * 将 MinIO 常见英文错误转译为可操作的中文说明（MinIO 磁盘阈值不可通过配置关闭）。
+     */
+    private String formatMinioUploadMessage(String raw)
+    {
+        if (raw == null || raw.isEmpty())
+        {
+            return raw;
+        }
+        String lower = raw.toLowerCase();
+        if (lower.contains("minimum free drive threshold") || lower.contains("minimum free space"))
+        {
+            return "对象存储（MinIO）磁盘剩余空间不足，已触发写入保护。"
+                + "请在控制台或 mc 工具删除桶内旧影像（如前缀 chest_224_hd/），或清理宿主机磁盘、扩容 MinIO 数据目录后重试。"
+                + " 原始信息：" + raw;
+        }
+        return raw;
     }
 
     /**

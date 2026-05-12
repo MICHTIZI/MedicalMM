@@ -229,6 +229,7 @@
           <div class="pdd-footer">
             <el-button class="pdd-btn pdd-btn--primary" size="small" icon="el-icon-s-order" type="primary" plain @click="goAssistedFlow(drawerPatientId)">开始辅助诊断</el-button>
             <el-button class="pdd-btn pdd-btn--neutral" size="small" icon="el-icon-edit" @click="openEditFromDrawer" v-hasPermi="['medical:patient:edit']">编辑患者</el-button>
+            <el-button class="pdd-btn pdd-btn--neutral" size="small" type="danger" plain icon="el-icon-delete" @click="confirmDeleteFromDrawer" v-hasPermi="['medical:patient:remove']">删除患者</el-button>
           </div>
         </template>
       </div>
@@ -281,6 +282,7 @@ import {
   getPatient,
   addPatient,
   updatePatient,
+  delPatient,
   listDoctorOptions
 } from '@/api/medical/patient'
 
@@ -462,6 +464,20 @@ export default {
       if (!this.drawerPatientId) return
       this.handleUpdatePatient(this.drawerPatientId)
       this.drawerOpen = false
+    },
+    confirmDeleteFromDrawer() {
+      const pid = this.drawerPatientId
+      const name = (this.detail && this.detail.patientSnapshot && this.detail.patientSnapshot.patientName) || ('ID ' + pid)
+      if (!pid) return
+      this.$modal.confirm('是否确认删除患者「' + name + '」？删除后相关数据将无法在此工作台恢复。').then(() => {
+        return delPatient(pid)
+      }).then(() => {
+        this.$modal.msgSuccess('删除成功')
+        this.drawerOpen = false
+        this.detail = null
+        this.drawerPatientId = undefined
+        this.getList()
+      }).catch(() => {})
     },
     getList() {
       this.loading = true

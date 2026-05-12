@@ -26,6 +26,7 @@ mybatis-plus:
       id-type: auto
 
 # MinIO 对象存储配置
+# 若上传报错 “minimum free drive threshold”，表示 MinIO 所在磁盘剩余空间不足，需删旧对象或扩容（见 imaging 模块说明）。
 minio:
   url: http://localhost:9000
   accessKey: minioadmin

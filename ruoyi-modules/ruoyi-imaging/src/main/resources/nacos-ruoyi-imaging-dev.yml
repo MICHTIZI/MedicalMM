@@ -26,6 +26,8 @@ mybatis-plus:
       id-type: auto
 
 # MinIO 对象存储配置（请根据实际 MinIO 地址修改）
+# 若上传报错 “minimum free drive threshold”，表示 MinIO 所在磁盘剩余空间不足（服务端硬限制，无法通过配置关闭）。
+# 处理：在控制台/mc 删除桶内旧对象、清理宿主机磁盘，或为 MinIO 数据目录扩容。
 minio:
   url: http://localhost:9000
   accessKey: minioadmin
