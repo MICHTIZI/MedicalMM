@@ -18,4 +18,7 @@ public interface AiImageAnalysisMapper
     int insertGeneratedRecord(MedicalRecord record);
 
     int updateGeneratedRecord(MedicalRecord record);
+
+    /** 同步病历中的 AI 标注图路径（与 chest_xray.ai_result_path 一致） */
+    int updateRecordAiResultPathByImageId(@Param("imageId") Long imageId, @Param("aiResultPath") String aiResultPath);
 }

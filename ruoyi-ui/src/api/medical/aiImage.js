@@ -16,6 +16,19 @@ export function analyzeAiImage(imageId) {
   })
 }
 
+/** 将用户合成的标注图写入 MinIO，覆盖 result/ 下与 AI 相同路径 */
+export function uploadAiImageUserOverlay(imageId, fileBlob, filename) {
+  const formData = new FormData()
+  formData.append('file', fileBlob, filename || 'overlay.jpg')
+  return request({
+    url: '/emr/aiImage/' + imageId + '/userOverlay',
+    method: 'post',
+    data: formData,
+    timeout: 120000,
+    headers: { repeatSubmit: false }
+  })
+}
+
 export function getAiImageRecord(imageId) {
   return request({
     url: '/emr/aiImage/' + imageId + '/record',

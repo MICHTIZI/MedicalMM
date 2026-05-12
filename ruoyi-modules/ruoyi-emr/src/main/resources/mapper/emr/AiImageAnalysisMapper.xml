@@ -43,6 +43,13 @@
         )
     </insert>
 
+    <update id="updateRecordAiResultPathByImageId">
+        UPDATE medical_record
+        SET ai_result_path = #{aiResultPath},
+            update_time = NOW()
+        WHERE image_id = #{imageId}
+    </update>
+
     <update id="updateGeneratedRecord" parameterType="com.ruoyi.emr.domain.MedicalRecord">
         UPDATE medical_record
         SET chief_complaint = #{chiefComplaint},

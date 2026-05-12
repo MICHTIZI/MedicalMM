@@ -18,11 +18,14 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.HandlerMapping;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ruoyi.common.core.constant.HttpStatus;
+import com.ruoyi.common.core.exception.ServiceException;
 import com.ruoyi.common.core.web.controller.BaseController;
 import com.ruoyi.common.core.web.domain.AjaxResult;
 import com.ruoyi.common.core.web.page.PageDomain;
@@ -81,6 +84,27 @@ public class AiImageAnalysisController extends BaseController
     public AjaxResult analyze(@PathVariable Long imageId)
     {
         return success(aiImageAnalysisService.analyze(imageId));
+    }
+
+    /**
+     * 将前端合成的「原图 + 矩形标注」写入 MinIO，覆盖与 AI 一致的 {@code result/原文件名} 对象。
+     */
+    @RequiresPermissions("ai:image:analyze")
+    @PostMapping("/{imageId}/userOverlay")
+    public AjaxResult uploadUserOverlay(@PathVariable Long imageId, @RequestParam("file") MultipartFile file)
+    {
+        try
+        {
+            return success(aiImageAnalysisService.uploadUserOverlay(imageId, file));
+        }
+        catch (ServiceException e)
+        {
+            return error(e.getMessage());
+        }
+        catch (Exception e)
+        {
+            return error("上传失败: " + e.getMessage());
+        }
     }
 
     @RequiresPermissions("ai:image:record")

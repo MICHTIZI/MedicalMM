@@ -11,7 +11,7 @@
           remote
           clearable
           reserve-keyword
-          placeholder="搜索并选择患者"
+          placeholder="选患者"
           :remote-method="remotePatientSearch"
           :loading="patientSearchLoading"
           size="small"
@@ -20,38 +20,23 @@
         >
           <el-option v-for="p in patientHits" :key="p.patientId" :label="formatPatientOption(p)" :value="p.patientId" />
         </el-select>
-        <el-divider direction="vertical" class="tb-div" />
-        <el-button-group>
-          <el-button size="mini" class="tb-btn" icon="el-icon-arrow-left" :disabled="!canPrevImg" @click="prevImage">上一张</el-button>
-          <el-button size="mini" class="tb-btn" icon="el-icon-arrow-right" :disabled="!canNextImg" @click="nextImage">下一张</el-button>
-        </el-button-group>
-        <el-button size="mini" class="tb-btn" icon="el-icon-refresh-left" @click="resetView">重置视图</el-button>
       </div>
 
       <div class="tb-center">
-        <el-button-group>
-          <el-button size="mini" class="tb-btn" :type="tool==='zoom'?'primary':''" icon="el-icon-zoom-in" @click="tool='zoom'">缩放</el-button>
-          <el-button size="mini" class="tb-btn" :type="tool==='pan'?'primary':''" icon="el-icon-rank" @click="tool='pan'">平移</el-button>
-        </el-button-group>
-        <el-popover placement="bottom" width="220" trigger="click">
-          <div class="wl-pop">
-            <div>窗位（亮度）{{ Math.round(brightness * 100) }}%</div>
-            <el-slider v-model="brightness" :min="0.5" :max="1.5" :step="0.02" />
-            <div>窗宽（对比）{{ Math.round(contrast * 100) }}%</div>
-            <el-slider v-model="contrast" :min="0.5" :max="1.8" :step="0.02" />
-          </div>
-          <el-button slot="reference" size="mini" class="tb-btn" icon="el-icon-sunny">窗宽窗位</el-button>
-        </el-popover>
         <el-button size="mini" class="tb-btn" icon="el-icon-full-screen" @click="fitToCanvas">铺满画布</el-button>
-        <el-button size="mini" class="tb-btn" :type="tool==='ruler'?'primary':''" icon="el-icon-place" @click="tool='ruler'">测距</el-button>
-        <el-button size="mini" class="tb-btn" :type="tool==='rect'?'primary':''" icon="el-icon-crop" @click="tool='rect'">矩形标注</el-button>
-        <el-button size="mini" class="tb-btn" :type="tool==='brush'?'primary':''" icon="el-icon-edit" @click="tool='brush'">画笔</el-button>
-        <el-button size="mini" class="tb-btn" icon="el-icon-delete" @click="clearUserAnnotations">清除标注</el-button>
+        <el-button-group class="tb-toggle-group">
+          <el-button size="mini" class="tb-btn tb-toggle" :class="{ 'tb-toggle--active': imageViewMode === 'original' }" :type="imageViewMode === 'original' ? 'primary' : ''" :disabled="!currentXray" @click="setImageView('original')">原图</el-button>
+          <el-button size="mini" class="tb-btn tb-toggle" :class="{ 'tb-toggle--active': imageViewMode === 'annotated' }" :type="imageViewMode === 'annotated' ? 'primary' : ''" :disabled="!currentXray || !hasAnnotatedView" @click="setImageView('annotated')">标注图</el-button>
+        </el-button-group>
+        <el-button size="mini" class="tb-btn tb-draw" :class="{ 'tb-draw--active': drawTool === 'rect' }" :type="drawTool === 'rect' ? 'primary' : ''" icon="el-icon-crop" :disabled="!currentXray || imageViewMode !== 'original'" @click="setDrawTool('rect')">矩形标注</el-button>
+        <el-button size="mini" class="tb-btn tb-draw" :class="{ 'tb-draw--active': drawTool === 'brush' }" :type="drawTool === 'brush' ? 'primary' : ''" icon="el-icon-edit" :disabled="!currentXray || imageViewMode !== 'original'" @click="setDrawTool('brush')">画笔</el-button>
+        <el-button size="mini" class="tb-btn" icon="el-icon-delete" :disabled="!currentXray || imageViewMode !== 'original'" @click="clearBrushTracks">清除画笔</el-button>
+        <el-button size="mini" class="tb-btn" icon="el-icon-delete-solid" :disabled="!currentXray || imageViewMode !== 'original'" @click="clearRectMarks">清除矩形</el-button>
+        <el-button size="mini" class="tb-btn" type="warning" plain icon="el-icon-upload2" :disabled="!currentXray || overlayUploading" :loading="overlayUploading" title="需先在原图上绘制矩形" @click="commitRectOverlay">上传标注</el-button>
       </div>
 
       <div class="tb-right">
-        <el-button size="mini" class="tb-btn" icon="el-icon-document" @click="goImportRecord">导入病历</el-button>
-        <el-button size="mini" class="tb-btn" icon="el-icon-tickets" @click="goImportLab">导入检验</el-button>
+        <el-button size="mini" class="tb-btn" icon="el-icon-upload" @click="goImportData">导入数据</el-button>
         <el-button size="mini" class="tb-btn cta" type="danger" plain icon="el-icon-cpu" :loading="aiLoading" :disabled="!currentXray" @click="runAiAnalyze">AI 病灶分析</el-button>
         <el-button size="mini" class="tb-btn cta" type="warning" plain icon="el-icon-document-copy" :disabled="!currentXray" @click="exportReport">生成报告</el-button>
         <el-button size="mini" class="tb-btn" :icon="isFs ? 'el-icon-copy-document' : 'el-icon-full-screen'" @click="toggleFullscreen">{{ isFs ? '退出全屏' : '全屏' }}</el-button>
@@ -70,43 +55,62 @@
           @mouseleave="onStageMouseUp"
         >
           <div v-if="!currentXray" class="stage-empty">请选择患者并加载胸片</div>
-          <div v-else class="stage-inner" ref="stageInner">
-            <div class="img-stack" :style="stackStyle">
-              <img
-                ref="imgEl"
-                class="pacs-img"
-                :src="currentImageUrl"
-                draggable="false"
-                @load="onImgLoad"
-                @error="onImgError"
-              >
-              <!-- AI 病灶框与手工标注层 -->
-              <div v-if="natW && natH" class="lesion-layer">
-                <div
-                  v-for="(lesion, idx) in displayLesions"
-                  :key="'ai-'+idx"
-                  class="lesion-box ai-lesion"
-                  :style="lesionStyle(lesion)"
-                  @mouseenter="hoverLesion = idx"
-                  @mouseleave="hoverLesion = null"
-                />
-                <div
-                  v-for="(r, idx) in userRects"
-                  :key="'ur-'+idx"
-                  class="lesion-box user-lesion"
-                  :style="normRectStyle(r)"
-                />
-                <svg v-if="rulerLineDisplay" class="ruler-svg" :viewBox="`0 0 ${natW} ${natH}`" preserveAspectRatio="none">
-                  <line :x1="rulerLineDisplay.x1" :y1="rulerLineDisplay.y1" :x2="rulerLineDisplay.x2" :y2="rulerLineDisplay.y2" stroke="#00e676" :stroke-width="rulerStrokeWidth" />
-                </svg>
-                <svg v-if="rectPreview" class="ruler-svg" :viewBox="`0 0 ${natW} ${natH}`" preserveAspectRatio="none">
-                  <rect :x="rectPreview.x" :y="rectPreview.y" :width="rectPreview.w" :height="rectPreview.h" fill="none" stroke="#ff5252" :stroke-width="rulerStrokeWidth" stroke-dasharray="8" />
-                </svg>
+          <template v-else>
+            <div class="stage-inner" ref="stageInner">
+              <div class="img-stack" :style="stackStyle">
+                <img
+                  ref="imgEl"
+                  class="pacs-img"
+                  :src="displayImageSrc"
+                  draggable="false"
+                  @load="onImgLoad"
+                  @error="onImgError"
+                >
+                <!-- AI 病灶框与手工标注层（仅原图模式叠加矢量框；标注图为 MinIO 整图） -->
+                <div v-if="natW && natH && imageViewMode === 'original'" class="lesion-layer">
+                  <div
+                    v-for="(lesion, idx) in displayLesions"
+                    :key="'ai-'+idx"
+                    class="lesion-box ai-lesion"
+                    :style="lesionStyle(lesion)"
+                    @mouseenter="hoverLesion = idx"
+                    @mouseleave="hoverLesion = null"
+                  />
+                  <div
+                    v-for="(r, idx) in userRects"
+                    :key="'ur-'+idx"
+                    class="lesion-box user-lesion"
+                    :style="normRectStyle(r)"
+                  />
+                  <svg v-if="rectPreview" class="ruler-svg" :viewBox="`0 0 ${natW} ${natH}`" preserveAspectRatio="none">
+                    <rect :x="rectPreview.x" :y="rectPreview.y" :width="rectPreview.w" :height="rectPreview.h" fill="none" stroke="#ff5252" :stroke-width="rulerStrokeWidth" stroke-dasharray="8" />
+                  </svg>
+                </div>
+                <canvas v-show="imageViewMode === 'original' && drawTool === 'brush'" ref="brushCanvas" class="brush-canvas" :width="natW || 800" :height="natH || 800" />
               </div>
-              <canvas v-show="tool==='brush'" ref="brushCanvas" class="brush-canvas" :width="natW || 800" :height="natH || 800" />
+              <div v-show="hoverLesion != null && lesionTooltip" class="lesion-tip" :style="tipStyle">{{ lesionTooltip }}</div>
             </div>
-            <div v-show="hoverLesion != null && lesionTooltip" class="lesion-tip" :style="tipStyle">{{ lesionTooltip }}</div>
-          </div>
+            <div v-if="currentXray && xrayList.length" class="stage-nav">
+              <button
+                type="button"
+                class="stage-nav-btn"
+                title="上一张"
+                :disabled="!canPrevImg"
+                @click.stop="prevImage"
+              >
+                <i class="el-icon-arrow-left" />
+              </button>
+              <button
+                type="button"
+                class="stage-nav-btn"
+                title="下一张"
+                :disabled="!canNextImg"
+                @click.stop="nextImage"
+              >
+                <i class="el-icon-arrow-right" />
+              </button>
+            </div>
+          </template>
         </div>
       </section>
 
@@ -161,7 +165,7 @@
           <div class="rp-card">
             <h3 class="rp-title">电子病历（只读）</h3>
             <pre v-if="recordPlainText" class="rp-pre">{{ recordPlainText }}</pre>
-            <div v-else class="rp-placeholder">暂无绑定病历；可点击「导入病历」录入</div>
+            <div v-else class="rp-placeholder">暂无绑定病历；可点击「导入数据」进入流水录入</div>
           </div>
 
           <div class="rp-card rp-card-last">
@@ -174,7 +178,7 @@
               </div>
             </div>
             <pre v-else-if="labRemarkText" class="rp-pre sm">{{ labRemarkText }}</pre>
-            <div v-else class="rp-placeholder">暂无检验数据；可点击「导入检验」</div>
+            <div v-else class="rp-placeholder">暂无检验数据；可点击「导入数据」进入流水录入</div>
           </div>
         </div>
       </aside>
@@ -185,10 +189,11 @@
 <script>
 import { saveAs } from 'file-saver'
 import { listPatientCards, getPatientDiagnosisDetail } from '@/api/medical/patient'
-import { listAiImage, analyzeAiImage, exportAiImageReport, aiImageUrl } from '@/api/medical/aiImage'
+import { listAiImage, analyzeAiImage, exportAiImageReport, aiImageUrl, uploadAiImageUserOverlay } from '@/api/medical/aiImage'
 import { listMedicalRecord } from '@/api/medical/record'
 import { listLab } from '@/api/medical/labResult'
 import { buildLabCompareRows } from '@/utils/viewerLabReference'
+import { checkPermi } from '@/utils/permission'
 
 const AI_CACHE_PREFIX = 'pacs_ai_result_'
 
@@ -203,7 +208,7 @@ export default {
       currentIndex: 0,
       leftFrac: 0.65,
       splitDrag: false,
-      tool: 'pan',
+      drawTool: null,
       scale: 1,
       tx: 0,
       ty: 0,
@@ -221,20 +226,41 @@ export default {
       recordRows: [],
       labRows: [],
       userRects: [],
-      rulerPoints: [],
       rectDrag: null,
       brushDrawing: false,
       brushLast: null,
       isFs: false,
-      imgError: false
+      imgError: false,
+      imageViewMode: 'original',
+      annotatedImageKey: 0,
+      overlayUploading: false
     }
   },
   computed: {
     currentXray() {
       return this.xrayList[this.currentIndex] || null
     },
-    currentImageUrl() {
+    resolvedAiResultPath() {
+      const row = this.currentXray
+      if (!row) return ''
+      if (row.aiResultPath) return row.aiResultPath
+      if (this.aiResult) {
+        const p = this.aiResult.aiResultPath || this.aiResult.ai_result_path
+        if (p) return p
+      }
+      return ''
+    },
+    hasAnnotatedView() {
+      return !!this.resolvedAiResultPath
+    },
+    displayImageSrc() {
       if (!this.currentXray || !this.currentXray.imagePath) return ''
+      if (this.imageViewMode === 'annotated' && this.hasAnnotatedView) {
+        const base = aiImageUrl(this.resolvedAiResultPath)
+        if (!base) return aiImageUrl(this.currentXray.imagePath)
+        const sep = base.includes('?') ? '&' : '?'
+        return base + sep + '_t=' + this.annotatedImageKey
+      }
       return aiImageUrl(this.currentXray.imagePath)
     },
     canPrevImg() {
@@ -318,15 +344,6 @@ export default {
       if (!lab || !lab.remark) return ''
       return lab.remark
     },
-    rulerLineDisplay() {
-      if (this.rulerPoints.length < 2 || !this.natW) return null
-      return {
-        x1: this.rulerPoints[0].x * this.natW,
-        y1: this.rulerPoints[0].y * this.natH,
-        x2: this.rulerPoints[1].x * this.natW,
-        y2: this.rulerPoints[1].y * this.natH
-      }
-    },
     rectPreview() {
       if (!this.rectDrag || !this.natW) return null
       const x1 = Math.min(this.rectDrag.x0, this.rectDrag.x1) * this.natW
@@ -346,9 +363,16 @@ export default {
         this.onPatientChange()
       }
     },
+    imageViewMode(m) {
+      if (m === 'annotated') {
+        this.drawTool = null
+      }
+    },
     currentIndex() {
       this.loadAiForCurrentImage()
       this.resetViewSoft()
+      this.imageViewMode = 'original'
+      this.drawTool = null
     }
   },
   created() {
@@ -363,6 +387,7 @@ export default {
     document.addEventListener('mousemove', this.onSplitMouseMove)
     document.addEventListener('mouseup', this.onSplitMouseUp)
     document.addEventListener('fullscreenchange', this.onFsChange)
+    this.$nextTick(() => this.tryEnterFullscreen())
   },
   beforeDestroy() {
     document.removeEventListener('mousemove', this.onSplitMouseMove)
@@ -420,6 +445,9 @@ export default {
       this.diagnosisSnapshot = null
       this.recordRows = []
       this.labRows = []
+      this.imageViewMode = 'original'
+      this.annotatedImageKey = 0
+      this.drawTool = null
       if (!this.selectedPatientId) return
       const pid = this.selectedPatientId
       getPatientDiagnosisDetail(pid).then(res => {
@@ -468,11 +496,6 @@ export default {
       this.scale = 1
       this.tx = 0
       this.ty = 0
-    },
-    resetView() {
-      this.resetViewSoft()
-      this.brightness = 1
-      this.contrast = 1
     },
     fitToCanvas() {
       const stage = this.$refs.stage
@@ -547,15 +570,14 @@ export default {
       if (e.button !== 0) return
       const norm = this.clientToNorm(e.clientX, e.clientY)
       if (!norm) return
-      if (this.tool === 'pan') {
+      if (this.imageViewMode === 'annotated') {
         this.panning = true
         this.panStart = { x: e.clientX, y: e.clientY, tx: this.tx, ty: this.ty }
-      } else if (this.tool === 'ruler') {
-        if (this.rulerPoints.length >= 2) this.rulerPoints = []
-        this.rulerPoints.push(norm)
-      } else if (this.tool === 'rect') {
+        return
+      }
+      if (this.drawTool === 'rect') {
         this.rectDrag = { x0: norm.x, y0: norm.y, x1: norm.x, y1: norm.y }
-      } else if (this.tool === 'brush') {
+      } else if (this.drawTool === 'brush') {
         this.brushDrawing = true
         this.brushLast = norm
         const cvs = this.$refs.brushCanvas
@@ -567,6 +589,9 @@ export default {
           ctx.beginPath()
           ctx.moveTo(norm.x * this.natW, norm.y * this.natH)
         }
+      } else {
+        this.panning = true
+        this.panStart = { x: e.clientX, y: e.clientY, tx: this.tx, ty: this.ty }
       }
     },
     onStageMouseMove(e) {
@@ -601,11 +626,14 @@ export default {
       }
       this.brushDrawing = false
     },
-    clearUserAnnotations() {
-      this.userRects = []
-      this.rulerPoints = []
-      this.rectDrag = null
+    clearBrushTracks() {
       this.initBrushCanvas()
+      this.$message.success('已清除画笔痕迹')
+    },
+    clearRectMarks() {
+      this.userRects = []
+      this.rectDrag = null
+      this.$message.success('已清除矩形标注')
     },
     startSplitDrag() {
       this.splitDrag = true
@@ -623,24 +651,108 @@ export default {
     onSplitMouseUp() {
       this.splitDrag = false
     },
+    setImageView(mode) {
+      if (mode === 'annotated' && !this.hasAnnotatedView) {
+        this.$message.warning('暂无标注图，请先执行 AI 病灶分析或上传矩形标注')
+        return
+      }
+      if (!this.currentXray) return
+      this.imageViewMode = mode
+    },
+    setDrawTool(mode) {
+      if (!this.currentXray || this.imageViewMode !== 'original') return
+      if (this.drawTool === mode) {
+        this.drawTool = null
+      } else {
+        this.drawTool = mode
+      }
+    },
     goPatientList() {
       this.$router.push('/patient/list').catch(() => {})
     },
-    goImportRecord() {
+    goImportData() {
       const pid = this.selectedPatientId
       if (!pid) {
         this.$message.warning('请先选择患者')
         return
       }
-      this.$router.push({ path: '/patient/record', query: { patientId: pid } }).catch(() => {})
+      this.$router.push({ path: '/assisted-diagnosis/flow', query: { patientId: String(pid), step: '1' } }).catch(() => {})
     },
-    goImportLab() {
-      const pid = this.selectedPatientId
-      if (!pid) {
-        this.$message.warning('请先选择患者')
+    loadRemoteImageForCanvas(url) {
+      return fetch(url)
+        .then(r => {
+          if (!r.ok) throw new Error('原图加载失败')
+          return r.blob()
+        })
+        .then(blob => createImageBitmap(blob))
+    },
+    async commitRectOverlay() {
+      if (!this.currentXray) {
+        this.$message.warning('请先加载影像')
         return
       }
-      this.$router.push({ path: '/patient/lab', query: { patientId: pid } }).catch(() => {})
+      if (!this.userRects.length) {
+        this.$message.warning('请先用矩形标注工具在图像上框选至少一个区域后再上传')
+        return
+      }
+      if (!this.natW || !this.natH) {
+        this.$message.warning('请等待影像加载完成后再上传')
+        return
+      }
+      if (!checkPermi(['ai:image:analyze'])) {
+        this.$modal.msgError('无上传权限，请联系管理员分配「AI分析」操作权限')
+        return
+      }
+      const id = this.currentXray.id
+      const pid = this.selectedPatientId
+      this.overlayUploading = true
+      try {
+        const url = aiImageUrl(this.currentXray.imagePath)
+        const bmp = await this.loadRemoteImageForCanvas(url)
+        const cvs = document.createElement('canvas')
+        cvs.width = this.natW
+        cvs.height = this.natH
+        const ctx = cvs.getContext('2d')
+        ctx.drawImage(bmp, 0, 0, this.natW, this.natH)
+        try { bmp.close() } catch (e) { /* noop */ }
+        const lw = Math.max(2, this.natW * 0.004)
+        ctx.lineWidth = lw
+        ctx.strokeStyle = '#00e676'
+        this.userRects.forEach(r => {
+          ctx.strokeRect(r.x * this.natW, r.y * this.natH, r.w * this.natW, r.h * this.natH)
+        })
+        const full = String(this.currentXray.imagePath || '')
+        const extMatch = full.match(/\.(jpe?g|png)$/i)
+        const ext = extMatch ? extMatch[0].toLowerCase() : '.jpg'
+        const mime = ext === '.png' ? 'image/png' : 'image/jpeg'
+        const normPath = full.replace(/\\/g, '/')
+        const fname = normPath.substring(normPath.lastIndexOf('/') + 1) || ('overlay' + ext)
+        const blob = await new Promise((resolve, reject) => {
+          cvs.toBlob(b => (b ? resolve(b) : reject(new Error('画布导出失败'))), mime, mime === 'image/jpeg' ? 0.92 : undefined)
+        })
+        const res = await uploadAiImageUserOverlay(id, blob, fname)
+        if (res.code !== 200) {
+          this.$modal.msgError(res.msg || '上传失败')
+          return
+        }
+        this.$modal.msgSuccess('矩形标注图已写入 MinIO，已覆盖原 AI 标注图路径')
+        this.annotatedImageKey++
+        await Promise.all([
+          listAiImage({ patientId: pid, pageNum: 1, pageSize: 200 }).then(r2 => {
+            this.xrayList = r2.rows || []
+            const idx = this.xrayList.findIndex(r => r.id === id)
+            if (idx >= 0) this.currentIndex = idx
+          }),
+          listMedicalRecord({ patientId: pid, pageNum: 1, pageSize: 200 }).then(r3 => {
+            this.recordRows = r3.rows || []
+          })
+        ])
+        this.imageViewMode = 'annotated'
+      } catch (e) {
+        this.$modal.msgError((e && e.message) || '合成或上传失败')
+      } finally {
+        this.overlayUploading = false
+      }
     },
     runAiAnalyze() {
       if (!this.currentXray) return
@@ -655,6 +767,8 @@ export default {
           }
           this.aiResult = payload
           this.persistAi(curId, payload)
+          this.annotatedImageKey++
+          this.imageViewMode = 'annotated'
           this.$message.success((res && res.msg) || '\u68c0\u6d4b\u6210\u529f')
           if (!pid) return null
           return listAiImage({ patientId: pid, pageNum: 1, pageSize: 200 })
@@ -686,6 +800,15 @@ export default {
         document.exitFullscreen && document.exitFullscreen()
       }
     },
+    tryEnterFullscreen() {
+      const el = this.$refs.pacsRoot
+      if (!el || typeof el.requestFullscreen !== 'function') return
+      if (document.fullscreenElement) return
+      const p = el.requestFullscreen()
+      if (p && typeof p.catch === 'function') {
+        p.catch(() => { /* 浏览器可能因无用户手势拒绝，静默忽略 */ })
+      }
+    },
     onFsChange() {
       this.isFs = !!document.fullscreenElement
     }
@@ -704,13 +827,14 @@ export default {
   font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
 }
 .pacs-toolbar {
-  height: 60px;
-  min-height: 60px;
+  min-height: 48px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 12px 0 8px;
+  flex-wrap: wrap;
+  row-gap: 6px;
+  padding: 6px 10px;
   background: linear-gradient(180deg, #003366 0%, #004085 100%);
   color: #fff;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
@@ -721,12 +845,22 @@ export default {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 4px 6px;
+}
+.tb-left {
+  flex-shrink: 0;
+  max-width: min(42%, 320px);
 }
 .tb-center {
   justify-content: center;
   flex: 1;
-  padding: 0 8px;
+  min-width: 0;
+  padding: 0 6px;
+}
+.tb-right {
+  justify-content: flex-end;
+  flex-shrink: 0;
+  max-width: 100%;
 }
 .tb-txt {
   color: #fff !important;
@@ -742,13 +876,23 @@ export default {
 .tb-btn.cta {
   font-weight: 600;
 }
+.tb-toggle-group {
+  margin: 0 2px;
+}
+.tb-toggle.tb-toggle--active,
+.tb-draw.tb-draw--active {
+  box-shadow: 0 0 0 1px rgba(121, 187, 255, 0.9) inset !important;
+  font-weight: 600;
+}
 .tb-label {
   font-size: 12px;
   opacity: 0.85;
   margin-right: 4px;
 }
 .tb-patient-select {
-  width: 220px;
+  width: 132px;
+  max-width: min(28vw, 180px);
+  flex-shrink: 0;
 }
 .tb-div {
   background: rgba(255, 255, 255, 0.25);
@@ -787,6 +931,43 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+.stage-nav {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 56px;
+  z-index: 12;
+  pointer-events: none;
+}
+.stage-nav-btn {
+  pointer-events: auto;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(0, 0, 0, 0.35);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  line-height: 1;
+  transition: background 0.15s ease, transform 0.12s ease;
+}
+.stage-nav-btn:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.52);
+  transform: scale(1.06);
+}
+.stage-nav-btn:disabled {
+  opacity: 0.22;
+  cursor: not-allowed;
+  transform: none;
 }
 .img-stack {
   position: relative;
@@ -1038,5 +1219,10 @@ export default {
 }
 ::v-deep .tb-patient-select .el-input__inner {
   background: rgba(255, 255, 255, 0.95);
+  height: 30px;
+  line-height: 30px;
+  font-size: 12px;
+  padding-left: 8px;
+  padding-right: 26px;
 }
 </style>

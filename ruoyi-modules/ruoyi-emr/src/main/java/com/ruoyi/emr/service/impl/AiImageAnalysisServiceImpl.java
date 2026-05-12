@@ -1,9 +1,11 @@
 package com.ruoyi.emr.service.impl;
 
+import java.io.InputStream;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +25,7 @@ import com.ruoyi.emr.service.IAiImageAnalysisService;
 import com.ruoyi.emr.service.IChestXrayService;
 import com.ruoyi.system.api.model.LoginUser;
 import io.minio.MinioClient;
+import io.minio.PutObjectArgs;
 import io.minio.StatObjectArgs;
 
 @Service
@@ -82,6 +85,44 @@ public class AiImageAnalysisServiceImpl implements IAiImageAnalysisService
             medicalPatientDiagnosisService.markAiCompleted(xray.getPatientId());
         }
         return result;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public String uploadUserOverlay(Long imageId, MultipartFile file)
+    {
+        if (file == null || file.isEmpty())
+        {
+            throw new ServiceException("上传文件为空");
+        }
+        ChestXray xray = chestXrayService.getById(imageId);
+        checkXrayAccess(xray);
+        String filename = extractFilename(xray.getImagePath());
+        if (StringUtils.isEmpty(filename))
+        {
+            throw new ServiceException("影像路径无效");
+        }
+        String objectKey = "result/" + filename;
+        String contentType = StringUtils.isNotEmpty(file.getContentType()) ? file.getContentType() : "image/jpeg";
+
+        try (InputStream is = file.getInputStream())
+        {
+            minioClient.putObject(PutObjectArgs.builder()
+                .bucket(minioConfig.getBucketName())
+                .object(objectKey)
+                .stream(is, file.getSize(), -1)
+                .contentType(contentType)
+                .build());
+        }
+        catch (Exception e)
+        {
+            throw new ServiceException("写入 MinIO 失败: " + e.getMessage());
+        }
+
+        xray.setAiResultPath(objectKey);
+        chestXrayService.updateById(xray);
+        aiImageAnalysisMapper.updateRecordAiResultPathByImageId(imageId, objectKey);
+        return objectKey;
     }
 
     @Override
