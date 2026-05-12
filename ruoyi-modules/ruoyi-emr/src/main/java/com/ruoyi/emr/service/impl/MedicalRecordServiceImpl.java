@@ -13,6 +13,7 @@ import com.ruoyi.emr.domain.vo.XrayOptionVo;
 import com.ruoyi.emr.mapper.MedicalRecordMapper;
 import com.ruoyi.emr.service.IMedicalPatientDiagnosisService;
 import com.ruoyi.emr.service.IMedicalRecordService;
+import com.ruoyi.emr.support.PatientArchiveGuard;
 import com.ruoyi.system.api.model.LoginUser;
 
 /**
@@ -26,6 +27,9 @@ public class MedicalRecordServiceImpl implements IMedicalRecordService
 
     @Autowired
     private IMedicalPatientDiagnosisService medicalPatientDiagnosisService;
+
+    @Autowired
+    private PatientArchiveGuard patientArchiveGuard;
 
     @Override
     public List<MedicalRecord> selectMedicalRecordList(MedicalRecord record)
@@ -50,6 +54,7 @@ public class MedicalRecordServiceImpl implements IMedicalRecordService
     {
         MedicalPatient patient = requirePatient(record.getPatientId());
         requireAttendingDoctor(patient);
+        patientArchiveGuard.rejectIfArchived(record.getPatientId());
         fillOperator(record);
         fillImage(record);
         checkImageUnique(null, record.getImageId());
@@ -72,6 +77,7 @@ public class MedicalRecordServiceImpl implements IMedicalRecordService
         {
             return 0;
         }
+        patientArchiveGuard.rejectIfArchived(old.getPatientId());
         MedicalPatient patient = requirePatient(record.getPatientId());
         if (!SecurityUtils.isAdmin())
         {
@@ -91,7 +97,12 @@ public class MedicalRecordServiceImpl implements IMedicalRecordService
     {
         for (Long recordId : recordIds)
         {
-            checkRecordAccess(medicalRecordMapper.selectMedicalRecordByRecordId(recordId));
+            MedicalRecord r = medicalRecordMapper.selectMedicalRecordByRecordId(recordId);
+            checkRecordAccess(r);
+            if (r != null && r.getPatientId() != null)
+            {
+                patientArchiveGuard.rejectIfArchived(r.getPatientId());
+            }
         }
         return medicalRecordMapper.deleteMedicalRecordByRecordIds(recordIds);
     }
@@ -99,7 +110,12 @@ public class MedicalRecordServiceImpl implements IMedicalRecordService
     @Override
     public int deleteMedicalRecordByRecordId(Long recordId)
     {
-        checkRecordAccess(medicalRecordMapper.selectMedicalRecordByRecordId(recordId));
+        MedicalRecord r = medicalRecordMapper.selectMedicalRecordByRecordId(recordId);
+        checkRecordAccess(r);
+        if (r != null && r.getPatientId() != null)
+        {
+            patientArchiveGuard.rejectIfArchived(r.getPatientId());
+        }
         return medicalRecordMapper.deleteMedicalRecordByRecordId(recordId);
     }
 

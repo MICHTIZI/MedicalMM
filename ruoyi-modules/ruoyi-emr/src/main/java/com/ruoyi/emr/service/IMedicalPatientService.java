@@ -28,4 +28,8 @@ public interface IMedicalPatientService
     int deleteMedicalPatientByPatientId(Long patientId);
 
     List<DoctorOptionVo> selectDoctorOptions();
+
+    int archivePatient(Long patientId, String archiveRemark);
+
+    int unarchivePatient(Long patientId);
 }

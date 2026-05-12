@@ -35,6 +35,14 @@ public class PatientCardVo implements Serializable
     private String latestAiDiagnosis;
     private Integer latestLesionCount;
 
+    private Integer isArchived;
+
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private Date archiveTime;
+
+    private String archiveBy;
+    private String archiveRemark;
+
     public Long getPatientId()
     {
         return patientId;
@@ -183,6 +191,46 @@ public class PatientCardVo implements Serializable
     public void setLatestLesionCount(Integer latestLesionCount)
     {
         this.latestLesionCount = latestLesionCount;
+    }
+
+    public Integer getIsArchived()
+    {
+        return isArchived;
+    }
+
+    public void setIsArchived(Integer isArchived)
+    {
+        this.isArchived = isArchived;
+    }
+
+    public Date getArchiveTime()
+    {
+        return archiveTime;
+    }
+
+    public void setArchiveTime(Date archiveTime)
+    {
+        this.archiveTime = archiveTime;
+    }
+
+    public String getArchiveBy()
+    {
+        return archiveBy;
+    }
+
+    public void setArchiveBy(String archiveBy)
+    {
+        this.archiveBy = archiveBy;
+    }
+
+    public String getArchiveRemark()
+    {
+        return archiveRemark;
+    }
+
+    public void setArchiveRemark(String archiveRemark)
+    {
+        this.archiveRemark = archiveRemark;
     }
 
     /** All three modalities satisfied */

@@ -21,6 +21,7 @@ import com.ruoyi.emr.mapper.MedicalPatientMapper;
 import com.ruoyi.emr.service.IChestXrayService;
 import com.ruoyi.emr.service.IMedicalPatientDiagnosisService;
 import com.ruoyi.emr.service.IMedicalPatientService;
+import com.ruoyi.emr.support.PatientArchiveGuard;
 import com.ruoyi.system.api.model.LoginUser;
 
 @Service
@@ -37,9 +38,13 @@ public class MedicalPatientServiceImpl implements IMedicalPatientService
     @Autowired
     private IChestXrayService chestXrayService;
 
+    @Autowired
+    private PatientArchiveGuard patientArchiveGuard;
+
     @Override
     public List<MedicalPatient> selectMedicalPatientList(MedicalPatient patient)
     {
+        normalizeArchiveScope(patient);
         if (!SecurityUtils.isAdmin())
         {
             patient.setAttendingDoctorId(SecurityUtils.getUserId());
@@ -50,6 +55,7 @@ public class MedicalPatientServiceImpl implements IMedicalPatientService
     @Override
     public List<PatientCardVo> selectPatientCardList(MedicalPatient patient)
     {
+        normalizeArchiveScope(patient);
         if (!SecurityUtils.isAdmin())
         {
             patient.setAttendingDoctorId(SecurityUtils.getUserId());
@@ -139,6 +145,7 @@ public class MedicalPatientServiceImpl implements IMedicalPatientService
         {
             return 0;
         }
+        patientArchiveGuard.rejectIfArchived(patient.getPatientId());
         fillDoctorForUpdate(patient, old);
         patient.setUpdateBy(SecurityUtils.getUsername());
         patient.setUpdateTime(new Date());
@@ -151,6 +158,7 @@ public class MedicalPatientServiceImpl implements IMedicalPatientService
         for (Long patientId : patientIds)
         {
             checkPatientOwner(medicalPatientMapper.selectMedicalPatientByPatientId(patientId));
+            patientArchiveGuard.rejectIfArchived(patientId);
         }
         return medicalPatientMapper.deleteMedicalPatientByPatientIds(patientIds);
     }
@@ -159,7 +167,68 @@ public class MedicalPatientServiceImpl implements IMedicalPatientService
     public int deleteMedicalPatientByPatientId(Long patientId)
     {
         checkPatientOwner(medicalPatientMapper.selectMedicalPatientByPatientId(patientId));
+        patientArchiveGuard.rejectIfArchived(patientId);
         return medicalPatientMapper.deleteMedicalPatientByPatientId(patientId);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int archivePatient(Long patientId, String archiveRemark)
+    {
+        if (patientId == null)
+        {
+            throw new ServiceException("patientId required");
+        }
+        MedicalPatient old = medicalPatientMapper.selectMedicalPatientByPatientId(patientId);
+        checkPatientOwner(old);
+        if (old == null)
+        {
+            throw new ServiceException("患者不存在");
+        }
+        if (old.getIsArchived() != null && old.getIsArchived() == 1)
+        {
+            throw new ServiceException("患者已归档");
+        }
+        MedicalPatientDiagnosis d = medicalPatientDiagnosisService.selectByPatientId(patientId);
+        boolean reportOk = d != null && ((d.getDiagnosisStatus() != null && d.getDiagnosisStatus() >= 4)
+            || (d.getHasDiagnosisReport() != null && d.getHasDiagnosisReport() == 1));
+        if (!reportOk)
+        {
+            throw new ServiceException("需先生成辅助诊断报告后才能归档");
+        }
+        MedicalPatient row = new MedicalPatient();
+        row.setPatientId(patientId);
+        row.setArchiveTime(new Date());
+        row.setArchiveBy(currentNickName());
+        row.setArchiveRemark(StringUtils.isNotEmpty(archiveRemark) ? archiveRemark.trim() : null);
+        row.setUpdateBy(SecurityUtils.getUsername());
+        row.setUpdateTime(new Date());
+        return medicalPatientMapper.archiveMedicalPatient(row);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int unarchivePatient(Long patientId)
+    {
+        if (patientId == null)
+        {
+            throw new ServiceException("patientId required");
+        }
+        MedicalPatient old = medicalPatientMapper.selectMedicalPatientByPatientId(patientId);
+        checkPatientOwner(old);
+        if (old == null)
+        {
+            throw new ServiceException("患者不存在");
+        }
+        if (old.getIsArchived() == null || old.getIsArchived() != 1)
+        {
+            throw new ServiceException("患者未归档");
+        }
+        MedicalPatient row = new MedicalPatient();
+        row.setPatientId(patientId);
+        row.setUpdateBy(SecurityUtils.getUsername());
+        row.setUpdateTime(new Date());
+        return medicalPatientMapper.unarchiveMedicalPatient(row);
     }
 
     @Override
@@ -235,6 +304,23 @@ public class MedicalPatientServiceImpl implements IMedicalPatientService
         }
     }
 
+    private static void normalizeArchiveScope(MedicalPatient patient)
+    {
+        if (patient == null)
+        {
+            return;
+        }
+        String scope = StringUtils.trim(patient.getArchiveScope());
+        if (StringUtils.isEmpty(scope) || !"archived".equalsIgnoreCase(scope))
+        {
+            patient.setArchiveScope("active");
+        }
+        else
+        {
+            patient.setArchiveScope("archived");
+        }
+    }
+
     private PatientCardVo buildCardVo(MedicalPatient p, MedicalPatientDiagnosis d, ChestXray latestXray)
     {
         PatientCardVo c = new PatientCardVo();
@@ -245,6 +331,10 @@ public class MedicalPatientServiceImpl implements IMedicalPatientService
         c.setPhone(p.getPhone());
         c.setAttendingDoctor(p.getAttendingDoctor());
         c.setPatientCreateTime(p.getCreateTime());
+        c.setIsArchived(p.getIsArchived() != null && p.getIsArchived() == 1 ? 1 : 0);
+        c.setArchiveTime(p.getArchiveTime());
+        c.setArchiveBy(p.getArchiveBy());
+        c.setArchiveRemark(p.getArchiveRemark());
         if (d != null)
         {
             c.setHasImage(nz(d.getHasImage()));

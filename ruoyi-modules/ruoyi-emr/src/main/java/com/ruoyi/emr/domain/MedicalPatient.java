@@ -1,9 +1,11 @@
 package com.ruoyi.emr.domain;
 
+import java.util.Date;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import com.ruoyi.common.core.annotation.Excel;
@@ -39,6 +41,19 @@ public class MedicalPatient extends BaseEntity
 
     @Excel(name = "Attending Doctor")
     private String attendingDoctor;
+
+    /** 0 in progress, 1 archived */
+    private Integer isArchived;
+
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private Date archiveTime;
+
+    private String archiveBy;
+
+    private String archiveRemark;
+
+    /** Query only: active | archived (default active when null) */
+    private String archiveScope;
 
     public Long getPatientId()
     {
@@ -126,6 +141,56 @@ public class MedicalPatient extends BaseEntity
         this.attendingDoctor = attendingDoctor;
     }
 
+    public Integer getIsArchived()
+    {
+        return isArchived;
+    }
+
+    public void setIsArchived(Integer isArchived)
+    {
+        this.isArchived = isArchived;
+    }
+
+    public Date getArchiveTime()
+    {
+        return archiveTime;
+    }
+
+    public void setArchiveTime(Date archiveTime)
+    {
+        this.archiveTime = archiveTime;
+    }
+
+    public String getArchiveBy()
+    {
+        return archiveBy;
+    }
+
+    public void setArchiveBy(String archiveBy)
+    {
+        this.archiveBy = archiveBy;
+    }
+
+    public String getArchiveRemark()
+    {
+        return archiveRemark;
+    }
+
+    public void setArchiveRemark(String archiveRemark)
+    {
+        this.archiveRemark = archiveRemark;
+    }
+
+    public String getArchiveScope()
+    {
+        return archiveScope;
+    }
+
+    public void setArchiveScope(String archiveScope)
+    {
+        this.archiveScope = archiveScope;
+    }
+
     @Override
     public String toString()
     {
@@ -138,6 +203,10 @@ public class MedicalPatient extends BaseEntity
             .append("address", getAddress())
             .append("attendingDoctorId", getAttendingDoctorId())
             .append("attendingDoctor", getAttendingDoctor())
+            .append("isArchived", getIsArchived())
+            .append("archiveTime", getArchiveTime())
+            .append("archiveBy", getArchiveBy())
+            .append("archiveRemark", getArchiveRemark())
             .append("createBy", getCreateBy())
             .append("createTime", getCreateTime())
             .append("updateBy", getUpdateBy())

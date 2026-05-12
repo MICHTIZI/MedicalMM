@@ -18,6 +18,7 @@ import com.ruoyi.emr.mapper.FusionAnalysisReportMapper;
 import com.ruoyi.emr.mapper.MedicalPatientMapper;
 import com.ruoyi.emr.service.IChestXrayService;
 import com.ruoyi.emr.service.IFusionAnalysisReportService;
+import com.ruoyi.emr.support.PatientArchiveGuard;
 
 @Service
 public class FusionAnalysisReportServiceImpl implements IFusionAnalysisReportService
@@ -33,6 +34,9 @@ public class FusionAnalysisReportServiceImpl implements IFusionAnalysisReportSer
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private PatientArchiveGuard patientArchiveGuard;
 
     @Override
     public List<FusionAnalysisReport> selectFusionAnalysisReportList(FusionAnalysisReport query)
@@ -81,6 +85,7 @@ public class FusionAnalysisReportServiceImpl implements IFusionAnalysisReportSer
         }
         ChestXray xray = chestXrayService.getById(imageId);
         checkXrayAccess(xray);
+        patientArchiveGuard.rejectIfArchived(xray.getPatientId());
         FusionAnalysisReport existing = fusionAnalysisReportMapper.selectByPatientIdAndImageId(xray.getPatientId(), imageId);
         FusionAnalysisReport row = new FusionAnalysisReport();
         row.setPatientId(xray.getPatientId());
@@ -128,6 +133,7 @@ public class FusionAnalysisReportServiceImpl implements IFusionAnalysisReportSer
         }
         FusionAnalysisReport cur = fusionAnalysisReportMapper.selectFusionAnalysisReportById(dto.getReportId());
         checkReportAccess(cur);
+        patientArchiveGuard.rejectIfArchived(cur.getPatientId());
         FusionAnalysisReport row = new FusionAnalysisReport();
         row.setReportId(dto.getReportId());
         row.setDoctorSignature(dto.getDoctorSignature());
@@ -146,6 +152,7 @@ public class FusionAnalysisReportServiceImpl implements IFusionAnalysisReportSer
         }
         FusionAnalysisReport cur = fusionAnalysisReportMapper.selectFusionAnalysisReportById(row.getReportId());
         checkReportAccess(cur);
+        patientArchiveGuard.rejectIfArchived(cur.getPatientId());
         row.setUpdateBy(SecurityUtils.getUsername());
         row.setUpdateTime(new Date());
         return fusionAnalysisReportMapper.updateFusionAnalysisReport(row);
@@ -162,6 +169,10 @@ public class FusionAnalysisReportServiceImpl implements IFusionAnalysisReportSer
         {
             FusionAnalysisReport row = fusionAnalysisReportMapper.selectFusionAnalysisReportById(id);
             checkReportAccess(row);
+            if (row != null && row.getPatientId() != null)
+            {
+                patientArchiveGuard.rejectIfArchived(row.getPatientId());
+            }
         }
         return fusionAnalysisReportMapper.logicalDeleteFusionAnalysisReportByIds(ids);
     }

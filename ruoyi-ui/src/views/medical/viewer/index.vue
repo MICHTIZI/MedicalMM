@@ -972,6 +972,24 @@ export default {
         further_examination: ar.further_examination || ar.furtherExamination
       }
     },
+    /**
+     * 浏览器全屏下仅渲染全屏元素子树，挂到 body 的 el-dialog 不可见；打开融合弹窗前先退出全屏。
+     */
+    async exitFullscreenIfNeeded() {
+      const fsEl = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement
+      if (!fsEl) return
+      try {
+        const p = document.exitFullscreen
+          ? document.exitFullscreen()
+          : (document.webkitExitFullscreen ? document.webkitExitFullscreen() : null)
+        if (p && typeof p.then === 'function') {
+          await p
+        }
+      } catch (e) {
+        /* 部分浏览器拒绝或已退出 */
+      }
+      this.isFs = !!(document.fullscreenElement || document.webkitFullscreenElement)
+    },
     async openFusionReportDialog() {
       if (!checkPermi(['ai:image:record'])) {
         this.$modal.msgError('无权限：需要 ai:image:record')
@@ -981,6 +999,8 @@ export default {
         this.$modal.msgWarning('请先选择并加载一张胸片')
         return
       }
+      await this.exitFullscreenIfNeeded()
+      await this.$nextTick()
       this.fusionDialogVisible = true
       this.fusionPanelLoading = true
       this.fusionEnvelope = null

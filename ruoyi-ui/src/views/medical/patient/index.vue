@@ -58,7 +58,15 @@
         <div class="pc-last muted">最后诊断：{{ row.lastDiagnosisTime ? parseTime(row.lastDiagnosisTime) : '—' }}</div>
 
         <div class="pc-actions" @click.stop="">
-          <el-button v-for="a in computeCardActions(row)" :key="a.key" size="mini" :type="a.btnType || 'default'" plain @click="handleCardAction(a.key, row)">{{ a.label }}</el-button>
+          <el-button
+            v-for="a in computeCardActions(row)"
+            v-show="!a.perm || checkPermi(a.perm)"
+            :key="a.key"
+            size="mini"
+            :type="a.btnType || 'default'"
+            plain
+            @click="handleCardAction(a.key, row)"
+          >{{ a.label }}</el-button>
         </div>
       </div>
 
@@ -283,8 +291,10 @@ import {
   addPatient,
   updatePatient,
   delPatient,
-  listDoctorOptions
+  listDoctorOptions,
+  archivePatient
 } from '@/api/medical/patient'
+import { checkPermi } from '@/utils/permission'
 
 export default {
   name: 'MedicalPatient',
@@ -297,7 +307,8 @@ export default {
       queryParams: {
         pageNum: 1,
         pageSize: 12,
-        patientName: undefined
+        patientName: undefined,
+        archiveScope: 'active'
       },
       doctorOptions: [],
       title: '',
@@ -357,6 +368,7 @@ export default {
     if (this.canAssignDoctor) this.getDoctorOptions()
   },
   methods: {
+    checkPermi,
     genderLabel(v) {
       const o = this.genderOptions.find(i => String(i.value) === String(v))
       return o ? o.label : '—'
@@ -400,7 +412,10 @@ export default {
       if (!ready) acts.push({ key: 'fill', label: '补全数据', btnType: 'warning' }) // 进入流水式录入（影像→病历→检验）
       else if (st < 2) acts.push({ key: 'ai', label: '开始 AI 诊断', btnType: 'primary' })
       else if (st >= 2 && st < 4) acts.push({ key: 'report', label: '生成报告' })
-      else acts.push({ key: 'viewer', label: '阅片器' })
+      else if (st === 4) {
+        acts.push({ key: 'viewer', label: '阅片器' })
+        acts.push({ key: 'archive', label: '归档', btnType: 'info', perm: ['medical:patient:archive'] })
+      } else acts.push({ key: 'viewer', label: '阅片器' })
       return acts
     },
     handleCardAction(key, row) {
@@ -410,6 +425,20 @@ export default {
       else if (key === 'ai') this.goAiBench(pid)
       else if (key === 'report') this.goAiBench(pid)
       else if (key === 'viewer') this.goAiBench(pid)
+      else if (key === 'archive') this.confirmArchive(pid)
+    },
+    confirmArchive(patientId) {
+      this.$prompt('可选：填写归档备注（将写入患者归档记录）', '确认归档', {
+        confirmButtonText: '确定归档',
+        cancelButtonText: '取消',
+        inputType: 'textarea',
+        inputPlaceholder: '备注可不填'
+      }).then(({ value }) => {
+        return archivePatient(patientId, { archiveRemark: value || undefined })
+      }).then(() => {
+        this.$modal.msgSuccess('归档成功')
+        this.getList()
+      }).catch(() => {})
     },
     openDrawer(row) {
       const pid = row.patientId
@@ -516,6 +545,7 @@ export default {
     },
     resetQuery() {
       this.resetForm('queryForm')
+      this.queryParams.archiveScope = 'active'
       this.handleQuery()
     },
     handleAdd() {

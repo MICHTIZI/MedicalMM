@@ -47,6 +47,7 @@ import com.ruoyi.emr.domain.query.ChestXrayQuery;
 import com.ruoyi.emr.mapper.MedicalPatientMapper;
 import com.ruoyi.emr.service.IChestXrayService;
 import com.ruoyi.emr.service.IMedicalPatientDiagnosisService;
+import com.ruoyi.emr.support.PatientArchiveGuard;
 import io.minio.BucketExistsArgs;
 import io.minio.GetObjectArgs;
 import io.minio.MakeBucketArgs;
@@ -78,6 +79,9 @@ public class ChestXrayController extends BaseController
 
     @Autowired
     private IMedicalPatientDiagnosisService medicalPatientDiagnosisService;
+
+    @Autowired
+    private PatientArchiveGuard patientArchiveGuard;
 
     /* =============== 列表 / 详情 =============== */
 
@@ -112,6 +116,10 @@ public class ChestXrayController extends BaseController
     public AjaxResult add(@RequestBody ChestXray entity)
     {
         entity.setCreateTime(new Date());
+        if (entity.getPatientId() != null)
+        {
+            patientArchiveGuard.rejectIfArchived(entity.getPatientId());
+        }
         boolean ok = chestXrayService.save(entity);
         if (ok && entity.getPatientId() != null)
         {
@@ -125,6 +133,15 @@ public class ChestXrayController extends BaseController
     @PutMapping
     public AjaxResult edit(@RequestBody ChestXray entity)
     {
+        if (entity.getPatientId() != null)
+        {
+            patientArchiveGuard.rejectIfArchived(entity.getPatientId());
+        }
+        ChestXray existing = entity.getId() != null ? chestXrayService.getById(entity.getId()) : null;
+        if (existing != null && existing.getPatientId() != null)
+        {
+            patientArchiveGuard.rejectIfArchived(existing.getPatientId());
+        }
         return toAjax(chestXrayService.updateById(entity));
     }
 
@@ -133,7 +150,15 @@ public class ChestXrayController extends BaseController
     @DeleteMapping("/{ids}")
     public AjaxResult remove(@PathVariable Long[] ids)
     {
-        for (Long id : ids) chestXrayService.removeById(id);
+        for (Long id : ids)
+        {
+            ChestXray x = chestXrayService.getById(id);
+            if (x != null && x.getPatientId() != null)
+            {
+                patientArchiveGuard.rejectIfArchived(x.getPatientId());
+            }
+            chestXrayService.removeById(id);
+        }
         return success();
     }
 
@@ -149,6 +174,7 @@ public class ChestXrayController extends BaseController
         {
             return error("请选择有效患者");
         }
+        patientArchiveGuard.rejectIfArchived(patient.getPatientId());
 
         try
         {

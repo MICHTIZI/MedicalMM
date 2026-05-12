@@ -25,6 +25,10 @@ public interface MedicalPatientMapper
 
     int deleteMedicalPatientByPatientIds(Long[] patientIds);
 
+    int archiveMedicalPatient(MedicalPatient patient);
+
+    int unarchiveMedicalPatient(MedicalPatient patient);
+
     String selectDoctorNickNameById(@Param("userId") Long userId);
 
     List<DoctorOptionVo> selectDoctorOptions();

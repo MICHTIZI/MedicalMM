@@ -60,3 +60,18 @@ export function listDoctorOptions() {
     method: 'get'
   })
 }
+
+export function archivePatient(patientId, data) {
+  return request({
+    url: '/emr/patient/archive/' + patientId,
+    method: 'post',
+    data: data || {}
+  })
+}
+
+export function unarchivePatient(patientId) {
+  return request({
+    url: '/emr/patient/unarchive/' + patientId,
+    method: 'post'
+  })
+}

@@ -23,6 +23,7 @@ import com.ruoyi.emr.service.IMedicalPatientDiagnosisService;
 import com.ruoyi.emr.mapper.MedicalPatientMapper;
 import com.ruoyi.emr.service.IAiImageAnalysisService;
 import com.ruoyi.emr.service.IChestXrayService;
+import com.ruoyi.emr.support.PatientArchiveGuard;
 import com.ruoyi.system.api.model.LoginUser;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
@@ -51,12 +52,16 @@ public class AiImageAnalysisServiceImpl implements IAiImageAnalysisService
     @Autowired
     private IMedicalPatientDiagnosisService medicalPatientDiagnosisService;
 
+    @Autowired
+    private PatientArchiveGuard patientArchiveGuard;
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public AiDetectResponseVo analyze(Long imageId)
     {
         ChestXray xray = chestXrayService.getById(imageId);
         checkXrayAccess(xray);
+        patientArchiveGuard.rejectIfArchived(xray.getPatientId());
         String imageName = extractFilename(xray.getImagePath());
         ensureRootImageObject(imageName);
         Map<String, String> body = new HashMap<>();
@@ -97,6 +102,7 @@ public class AiImageAnalysisServiceImpl implements IAiImageAnalysisService
         }
         ChestXray xray = chestXrayService.getById(imageId);
         checkXrayAccess(xray);
+        patientArchiveGuard.rejectIfArchived(xray.getPatientId());
         String filename = extractFilename(xray.getImagePath());
         if (StringUtils.isEmpty(filename))
         {

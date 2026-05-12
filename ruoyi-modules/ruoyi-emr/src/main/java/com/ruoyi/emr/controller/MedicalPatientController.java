@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import com.ruoyi.common.core.utils.poi.ExcelUtil;
 import com.ruoyi.common.core.web.controller.BaseController;
@@ -18,8 +19,10 @@ import com.ruoyi.common.core.web.domain.AjaxResult;
 import com.ruoyi.common.core.web.page.TableDataInfo;
 import com.ruoyi.common.log.annotation.Log;
 import com.ruoyi.common.log.enums.BusinessType;
+import com.ruoyi.common.security.annotation.Logical;
 import com.ruoyi.common.security.annotation.RequiresPermissions;
 import com.ruoyi.emr.domain.MedicalPatient;
+import com.ruoyi.emr.domain.dto.PatientArchiveRequest;
 import com.ruoyi.emr.domain.vo.DoctorOptionVo;
 import com.ruoyi.emr.domain.vo.PatientCardVo;
 import com.ruoyi.emr.service.IMedicalPatientService;
@@ -28,7 +31,7 @@ import com.ruoyi.emr.service.IMedicalPatientService;
  * Patient management Controller.
  */
 @RestController
-@RequestMapping("/patient")
+@RequestMapping({ "/patient", "/emr/patient" })
 public class MedicalPatientController extends BaseController
 {
     @Autowired
@@ -43,7 +46,7 @@ public class MedicalPatientController extends BaseController
         return getDataTable(list);
     }
 
-    @RequiresPermissions("medical:patient:list")
+    @RequiresPermissions(value = { "medical:patient:list", "medical:patient:archiveList" }, logical = Logical.OR)
     @GetMapping("/cardList")
     public TableDataInfo cardList(MedicalPatient patient)
     {
@@ -67,6 +70,23 @@ public class MedicalPatientController extends BaseController
         List<MedicalPatient> list = medicalPatientService.selectMedicalPatientList(patient);
         ExcelUtil<MedicalPatient> util = new ExcelUtil<>(MedicalPatient.class);
         util.exportExcel(response, list, "Patient Data");
+    }
+
+    @RequiresPermissions("medical:patient:archive")
+    @Log(title = "Patient archive", businessType = BusinessType.UPDATE)
+    @RequestMapping(value = "/archive/{patientId:\\d+}", method = { RequestMethod.PUT, RequestMethod.POST })
+    public AjaxResult archive(@PathVariable("patientId") Long patientId, @RequestBody(required = false) PatientArchiveRequest body)
+    {
+        String remark = body != null ? body.getArchiveRemark() : null;
+        return toAjax(medicalPatientService.archivePatient(patientId, remark));
+    }
+
+    @RequiresPermissions("medical:patient:unarchive")
+    @Log(title = "Patient unarchive", businessType = BusinessType.UPDATE)
+    @RequestMapping(value = "/unarchive/{patientId:\\d+}", method = { RequestMethod.PUT, RequestMethod.POST })
+    public AjaxResult unarchive(@PathVariable("patientId") Long patientId)
+    {
+        return toAjax(medicalPatientService.unarchivePatient(patientId));
     }
 
     @RequiresPermissions("medical:patient:query")

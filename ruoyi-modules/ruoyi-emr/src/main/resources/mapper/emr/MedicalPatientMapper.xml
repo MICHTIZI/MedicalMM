@@ -16,18 +16,32 @@
         <result property="updateBy" column="update_by" />
         <result property="updateTime" column="update_time" />
         <result property="remark" column="remark" />
+        <result property="isArchived" column="is_archived" />
+        <result property="archiveTime" column="archive_time" />
+        <result property="archiveBy" column="archive_by" />
+        <result property="archiveRemark" column="archive_remark" />
     </resultMap>
 
     <sql id="selectMedicalPatientVo">
         SELECT patient_id, patient_name, gender, age, phone, address,
                attending_doctor_id, attending_doctor,
-               create_by, create_time, update_by, update_time, remark
+               create_by, create_time, update_by, update_time, remark,
+               IFNULL(is_archived, 0) AS is_archived, archive_time, archive_by, archive_remark
         FROM medical_patient
     </sql>
 
     <select id="selectMedicalPatientList" parameterType="com.ruoyi.emr.domain.MedicalPatient" resultMap="MedicalPatientResult">
         <include refid="selectMedicalPatientVo" />
         <where>
+            <choose>
+                <!-- OGNL: 单引号为 char，多字符须用双引号或 .equals，否则 when 恒为假会误查在办 -->
+                <when test='archiveScope != null and "archived".equals(archiveScope)'>
+                    AND is_archived = 1
+                </when>
+                <otherwise>
+                    AND (is_archived = 0 OR is_archived IS NULL)
+                </otherwise>
+            </choose>
             <if test="patientName != null and patientName != ''">
                 AND patient_name LIKE CONCAT('%', #{patientName}, '%')
             </if>
@@ -63,6 +77,10 @@
         <result property="lastDiagnosisTime" column="last_diagnosis_time"/>
         <result property="latestAiDiagnosis" column="latest_ai_diagnosis"/>
         <result property="latestLesionCount" column="latest_lesion_count"/>
+        <result property="isArchived" column="is_archived"/>
+        <result property="archiveTime" column="archive_time"/>
+        <result property="archiveBy" column="archive_by"/>
+        <result property="archiveRemark" column="archive_remark"/>
     </resultMap>
 
     <select id="selectPatientCardVoList" parameterType="com.ruoyi.emr.domain.MedicalPatient" resultMap="PatientCardVoResult">
@@ -74,6 +92,10 @@
             p.phone,
             p.attending_doctor,
             p.create_time AS patient_create_time,
+            IFNULL(p.is_archived, 0) AS is_archived,
+            p.archive_time,
+            p.archive_by,
+            p.archive_remark,
             IFNULL(d.has_image, 0) AS has_image,
             IFNULL(d.has_medical_record, 0) AS has_medical_record,
             IFNULL(d.has_lab_result, 0) AS has_lab_result,
@@ -85,6 +107,14 @@
         FROM medical_patient p
         LEFT JOIN medical_patient_diagnosis d ON d.patient_id = p.patient_id AND (d.is_deleted = 0 OR d.is_deleted IS NULL)
         <where>
+            <choose>
+                <when test='archiveScope != null and "archived".equals(archiveScope)'>
+                    AND p.is_archived = 1
+                </when>
+                <otherwise>
+                    AND (p.is_archived = 0 OR p.is_archived IS NULL)
+                </otherwise>
+            </choose>
             <if test="patientName != null and patientName != ''">
                 AND p.patient_name LIKE CONCAT('%', #{patientName}, '%')
             </if>
@@ -99,6 +129,28 @@
         <include refid="selectMedicalPatientVo" />
         WHERE patient_id = #{patientId}
     </select>
+
+    <update id="archiveMedicalPatient" parameterType="com.ruoyi.emr.domain.MedicalPatient">
+        UPDATE medical_patient
+        SET is_archived = 1,
+            archive_time = #{archiveTime},
+            archive_by = #{archiveBy},
+            archive_remark = #{archiveRemark},
+            update_by = #{updateBy},
+            update_time = #{updateTime}
+        WHERE patient_id = #{patientId}
+    </update>
+
+    <update id="unarchiveMedicalPatient" parameterType="com.ruoyi.emr.domain.MedicalPatient">
+        UPDATE medical_patient
+        SET is_archived = 0,
+            archive_time = NULL,
+            archive_by = NULL,
+            archive_remark = NULL,
+            update_by = #{updateBy},
+            update_time = #{updateTime}
+        WHERE patient_id = #{patientId}
+    </update>
 
     <select id="selectDoctorNickNameById" resultType="String">
         SELECT u.nick_name

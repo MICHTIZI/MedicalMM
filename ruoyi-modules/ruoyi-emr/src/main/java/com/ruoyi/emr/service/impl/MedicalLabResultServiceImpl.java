@@ -2,7 +2,9 @@ package com.ruoyi.emr.service.impl;
 
 import java.io.IOException;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -15,6 +17,7 @@ import com.ruoyi.emr.mapper.MedicalLabResultMapper;
 import com.ruoyi.emr.mapper.MedicalPatientMapper;
 import com.ruoyi.emr.service.IMedicalLabResultService;
 import com.ruoyi.emr.service.IMedicalPatientDiagnosisService;
+import com.ruoyi.emr.support.PatientArchiveGuard;
 import com.ruoyi.emr.util.LabResultTxtParser;
 
 /**
@@ -31,6 +34,9 @@ public class MedicalLabResultServiceImpl implements IMedicalLabResultService
 
     @Autowired
     private IMedicalPatientDiagnosisService medicalPatientDiagnosisService;
+
+    @Autowired
+    private PatientArchiveGuard patientArchiveGuard;
 
     @Override
     public List<MedicalLabResult> selectMedicalLabResultList(MedicalLabResult query)
@@ -66,6 +72,7 @@ public class MedicalLabResultServiceImpl implements IMedicalLabResultService
         {
             requireAttendingDoctor(patient);
         }
+        patientArchiveGuard.rejectIfArchived(row.getPatientId());
         Date now = new Date();
         row.setCreateBy(SecurityUtils.getUsername());
         row.setCreateTime(now);
@@ -97,21 +104,41 @@ public class MedicalLabResultServiceImpl implements IMedicalLabResultService
         {
             requireAttendingDoctor(patient);
         }
+        patientArchiveGuard.rejectIfArchived(old.getPatientId());
         row.setPatientId(old.getPatientId());
         row.setUpdateBy(SecurityUtils.getUsername());
         row.setUpdateTime(new Date());
-        return medicalLabResultMapper.updateMedicalLabResult(row);
+        int n = medicalLabResultMapper.updateMedicalLabResult(row);
+        if (n > 0 && row.getPatientId() != null)
+        {
+            medicalPatientDiagnosisService.refreshMultimodal(row.getPatientId());
+        }
+        return n;
     }
 
     @Override
     public int deleteMedicalLabResultByIds(Long[] ids)
     {
+        Set<Long> patientIds = new HashSet<>();
         for (Long id : ids)
         {
             MedicalLabResult row = medicalLabResultMapper.selectMedicalLabResultById(id);
             checkLabAccess(row);
+            if (row != null && row.getPatientId() != null)
+            {
+                patientArchiveGuard.rejectIfArchived(row.getPatientId());
+                patientIds.add(row.getPatientId());
+            }
         }
-        return medicalLabResultMapper.logicalDeleteMedicalLabResultByIds(ids);
+        int n = medicalLabResultMapper.logicalDeleteMedicalLabResultByIds(ids);
+        if (n > 0)
+        {
+            for (Long pid : patientIds)
+            {
+                medicalPatientDiagnosisService.refreshMultimodal(pid);
+            }
+        }
+        return n;
     }
 
     @Override
@@ -130,6 +157,7 @@ public class MedicalLabResultServiceImpl implements IMedicalLabResultService
         {
             requireAttendingDoctor(patient);
         }
+        patientArchiveGuard.rejectIfArchived(patientId);
         MedicalLabResult parsed;
         try
         {

@@ -51,6 +51,9 @@
         <include refid="selectMedicalLabResultVo"/>
         <where>
             l.is_deleted = 0
+            <if test="patientId != null">
+                AND l.patient_id = #{patientId}
+            </if>
             <if test="patientName != null and patientName != ''">
                 AND p.patient_name LIKE CONCAT('%', #{patientName}, '%')
             </if>
