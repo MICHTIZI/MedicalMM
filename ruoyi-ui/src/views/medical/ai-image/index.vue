@@ -35,7 +35,7 @@
           <el-button size="mini" type="text" icon="el-icon-monitor" @click="openViewer(scope.row)" v-hasPermi="['ai:image:list']">阅片器</el-button>
           <el-button size="mini" type="text" icon="el-icon-picture" @click="handleCompare(scope.row)" v-hasPermi="['ai:image:view']">查看双图</el-button>
           <el-button size="mini" type="text" icon="el-icon-document" @click="handleRecord(scope.row)" v-hasPermi="['ai:image:record']">查看病历</el-button>
-          <el-button size="mini" type="text" icon="el-icon-download" @click="handleExportReport(scope.row)" v-hasPermi="['ai:image:record']">导出报告</el-button>
+          <el-button size="mini" type="text" icon="el-icon-download" @click="goFusionReportInViewer(scope.row)" v-hasPermi="['ai:image:record']">辅助诊断报告</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -69,8 +69,7 @@
 </template>
 
 <script>
-import { listAiImage, getAiImageRecord, exportAiImageReport, aiImageUrl, aiResultPathFromImage } from '@/api/medical/aiImage'
-import { saveAs } from 'file-saver'
+import { listAiImage, getAiImageRecord, aiImageUrl, aiResultPathFromImage } from '@/api/medical/aiImage'
 
 export default {
   name: 'AiImageAnalysis',
@@ -137,12 +136,14 @@ export default {
         this.recordOpen = true
       })
     },
-    handleExportReport(row) {
-      exportAiImageReport(row.id).then(data => {
-        const patientName = row.patientName || '未知患者'
-        const filename = `病历报告_${patientName}_${new Date().getTime()}.docx`
-        saveAs(new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }), filename)
-      })
+    goFusionReportInViewer(row) {
+      const pid = row.patientId
+      if (!pid) {
+        this.$modal.msgWarning('该影像未绑定患者')
+        return
+      }
+      this.$message.info('请在阅片器中点击「生成辅助诊断报告」完成融合与导出')
+      this.$router.push({ path: '/viewer/pacs', query: { patientId: pid, imageId: row.id } }).catch(() => {})
     }
   }
 }

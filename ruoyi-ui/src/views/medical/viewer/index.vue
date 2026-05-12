@@ -38,7 +38,7 @@
       <div class="tb-right">
         <el-button size="mini" class="tb-btn" icon="el-icon-upload" @click="goImportData">导入数据</el-button>
         <el-button size="mini" class="tb-btn cta" type="danger" plain icon="el-icon-cpu" :loading="aiLoading" :disabled="!currentXray" @click="runAiAnalyze">AI 病灶分析</el-button>
-        <el-button size="mini" class="tb-btn cta" type="warning" plain icon="el-icon-document-copy" :disabled="!currentXray" @click="exportReport">生成报告</el-button>
+        <el-button size="mini" class="tb-btn cta" type="warning" plain icon="el-icon-document-copy" :disabled="!currentXray" :loading="fusionPanelLoading" @click="openFusionReportDialog">生成辅助诊断报告</el-button>
         <el-button size="mini" class="tb-btn" :icon="isFs ? 'el-icon-copy-document' : 'el-icon-full-screen'" @click="toggleFullscreen">{{ isFs ? '退出全屏' : '全屏' }}</el-button>
       </div>
     </header>
@@ -183,16 +183,89 @@
         </div>
       </aside>
     </div>
+
+    <el-dialog
+      title="辅助诊断信息"
+      :visible.sync="fusionDialogVisible"
+      width="900px"
+      append-to-body
+      :z-index="5000"
+      @closed="onFusionDialogClosed"
+    >
+      <div v-loading="fusionPanelLoading">
+        <template v-if="fusionEnvelope && !fusionPanelLoading">
+          <el-collapse v-model="fusionCollapseNames">
+            <el-collapse-item title="单模态评分" name="ms">
+              <el-descriptions v-if="modalityScores" :column="1" border size="small">
+                <el-descriptions-item v-if="modalityScores.image" label="影像 ImgS">{{ modalityScores.image.score }}/10</el-descriptions-item>
+                <el-descriptions-item v-if="modalityScores.case" label="病例 CaseS">{{ modalityScores.case.score }}/10</el-descriptions-item>
+                <el-descriptions-item v-if="modalityScores.lab" label="检验 LabS">{{ modalityScores.lab.score }}/10</el-descriptions-item>
+              </el-descriptions>
+              <span v-else>暂无</span>
+            </el-collapse-item>
+            <el-collapse-item title="一致性校验" name="cc">
+              <div v-if="consistencyCheck">
+                <p><strong>级别：</strong>{{ consistencyCheck.level || '—' }}</p>
+                <ul v-if="consistencyRules.length" style="margin:8px 0 0 18px;padding:0;">
+                  <li v-for="(cr, idx) in consistencyRules" :key="idx" style="margin-bottom:6px;">
+                    <strong>{{ cr.rule_name || cr.ruleName }}</strong>：{{ cr.report_text || cr.reportText }}
+                  </li>
+                </ul>
+              </div>
+              <span v-else>暂无</span>
+            </el-collapse-item>
+            <el-collapse-item title="综合评分" name="fc">
+              <template v-if="fusionCalc">
+                <p>原始分 {{ fusionCalcRawScore }}，置信系数 {{ fusionCalcConfidenceFactor }}，最终分 {{ fusionCalcFinalScore }}</p>
+                <p v-if="fusionCalcWeights">权重 ImgS={{ fusionCalcWeights.ImgS }}，CaseS={{ fusionCalcWeights.CaseS }}，LabS={{ fusionCalcWeights.LabS }}</p>
+              </template>
+              <span v-else>暂无</span>
+            </el-collapse-item>
+            <el-collapse-item title="诊断输出" name="dg">
+              <template v-if="diagnosisOutput">
+                <p>确诊度：{{ diagnosisGradeCn }}（{{ diagnosisGrade }}）</p>
+                <p>严重程度：{{ diagnosisSeverityCn }}（{{ diagnosisSeverity }}）</p>
+                <p>处置：{{ diagnosisAction }}</p>
+              </template>
+              <span v-else>暂无</span>
+            </el-collapse-item>
+            <el-collapse-item title="结构化处置建议" name="sg">
+              <ol v-if="structuredSuggestions.length" style="margin:8px 0 0 18px;padding:0;">
+                <li v-for="(s, i) in structuredSuggestions" :key="i" style="margin-bottom:8px;">
+                  <el-tag size="mini" :type="s.priority === 'P0' ? 'danger' : (s.priority === 'P1' ? 'warning' : 'info')">{{ s.priority }}</el-tag>
+                  {{ s.category }} — {{ s.content }}
+                </li>
+              </ol>
+              <span v-else>暂无</span>
+            </el-collapse-item>
+          </el-collapse>
+          <el-divider />
+          <el-form label-width="96px" size="small">
+            <el-form-item label="医生签名" required>
+              <el-input v-model="doctorSignature" maxlength="64" show-word-limit placeholder="签名" />
+            </el-form-item>
+            <el-form-item label="医生建议">
+              <el-input v-model="doctorAdvice" type="textarea" :rows="3" maxlength="2000" show-word-limit placeholder="选填" />
+            </el-form-item>
+          </el-form>
+        </template>
+      </div>
+      <span slot="footer">
+        <el-button @click="fusionDialogVisible = false">关 闭</el-button>
+        <el-button type="primary" :loading="fusionExportLoading" :disabled="!fusionEnvelope || fusionPanelLoading" @click="confirmExportFusionWord">导出 Word 报告</el-button>
+      </span>
+    </el-dialog>
   </div>
 </template>
 
 <script>
 import { saveAs } from 'file-saver'
 import { listPatientCards, getPatientDiagnosisDetail } from '@/api/medical/patient'
-import { listAiImage, analyzeAiImage, exportAiImageReport, aiImageUrl, uploadAiImageUserOverlay } from '@/api/medical/aiImage'
+import { listAiImage, analyzeAiImage, fusionAnalyze, exportFusionReport, aiImageUrl, uploadAiImageUserOverlay } from '@/api/medical/aiImage'
 import { listMedicalRecord } from '@/api/medical/record'
 import { listLab } from '@/api/medical/labResult'
-import { buildLabCompareRows } from '@/utils/viewerLabReference'
+import { buildLabCompareRows, buildFusionLabPayload } from '@/utils/viewerLabReference'
+import { blobValidate } from '@/utils/ruoyi'
 import { checkPermi } from '@/utils/permission'
 
 const AI_CACHE_PREFIX = 'pacs_ai_result_'
@@ -233,7 +306,14 @@ export default {
       imgError: false,
       imageViewMode: 'original',
       annotatedImageKey: 0,
-      overlayUploading: false
+      overlayUploading: false,
+      fusionDialogVisible: false,
+      fusionPanelLoading: false,
+      fusionExportLoading: false,
+      fusionEnvelope: null,
+      doctorSignature: '',
+      doctorAdvice: '',
+      fusionCollapseNames: ['ms', 'cc', 'fc', 'dg', 'sg']
     }
   },
   computed: {
@@ -343,6 +423,80 @@ export default {
       const lab = this.latestLab
       if (!lab || !lab.remark) return ''
       return lab.remark
+    },
+    fusionCore() {
+      const e = this.fusionEnvelope
+      if (!e || e.data == null || typeof e.data !== 'object') return null
+      return e.data
+    },
+    modalityScores() {
+      const c = this.fusionCore
+      return c ? (c.modality_scores || c.modalityScores) : null
+    },
+    consistencyCheck() {
+      const c = this.fusionCore
+      return c ? (c.consistency_check || c.consistencyCheck) : null
+    },
+    consistencyRules() {
+      const cc = this.consistencyCheck
+      if (!cc) return []
+      const r = cc.conflict_rules || cc.conflictRules
+      return Array.isArray(r) ? r : []
+    },
+    fusionCalc() {
+      const c = this.fusionCore
+      return c ? (c.fusion_calculation || c.fusionCalculation) : null
+    },
+    fusionCalcWeights() {
+      const f = this.fusionCalc
+      return f && f.weights ? f.weights : null
+    },
+    fusionCalcRawScore() {
+      const f = this.fusionCalc
+      if (!f) return '—'
+      const v = f.raw_score != null ? f.raw_score : f.rawScore
+      return v != null ? v : '—'
+    },
+    fusionCalcConfidenceFactor() {
+      const f = this.fusionCalc
+      if (!f) return '—'
+      const v = f.confidence_factor != null ? f.confidence_factor : f.confidenceFactor
+      return v != null ? v : '—'
+    },
+    fusionCalcFinalScore() {
+      const f = this.fusionCalc
+      if (!f) return '—'
+      const v = f.final_score != null ? f.final_score : f.finalScore
+      return v != null ? v : '—'
+    },
+    diagnosisOutput() {
+      const c = this.fusionCore
+      return c ? (c.diagnosis_output || c.diagnosisOutput) : null
+    },
+    diagnosisGradeCn() {
+      const d = this.diagnosisOutput
+      return d ? (d.grade_cn || d.gradeCn || '—') : '—'
+    },
+    diagnosisGrade() {
+      const d = this.diagnosisOutput
+      return d ? (d.grade || '—') : '—'
+    },
+    diagnosisSeverityCn() {
+      const d = this.diagnosisOutput
+      return d ? (d.severity_cn || d.severityCn || '—') : '—'
+    },
+    diagnosisSeverity() {
+      const d = this.diagnosisOutput
+      return d ? (d.severity || '—') : '—'
+    },
+    diagnosisAction() {
+      const d = this.diagnosisOutput
+      return d ? (d.action || '—') : '—'
+    },
+    structuredSuggestions() {
+      const c = this.fusionCore
+      const s = c && (c.structured_suggestions || c.structuredSuggestions)
+      return Array.isArray(s) ? s : []
     },
     rectPreview() {
       if (!this.rectDrag || !this.natW) return null
@@ -784,13 +938,141 @@ export default {
         .catch(() => {})
         .finally(() => { this.aiLoading = false })
     },
-    exportReport() {
-      if (!this.currentXray) return
-      exportAiImageReport(this.currentXray.id).then(data => {
-        const patientName = (this.currentXray.patientName || '\u672a\u77e5\u60a3\u8005')
-        const filename = `\u75c5\u5386\u62a5\u544a_${patientName}_${new Date().getTime()}.docx`
+    buildImageResultForFusion() {
+      const ar = this.aiResult
+      if (!ar) return null
+      const row = this.currentXray
+      const list = ar.lesion_list || ar.lesionList || []
+      let listCopy
+      try {
+        listCopy = JSON.parse(JSON.stringify(list))
+      } catch (e) {
+        listCopy = list
+      }
+      const imgPath = row && row.imagePath ? String(row.imagePath) : ''
+      const fn = imgPath ? imgPath.replace(/\\/g, '/').split('/').pop() : ''
+      return {
+        code: ar.code != null ? ar.code : 200,
+        msg: ar.msg || 'OK',
+        lesion_count: ar.lesion_count != null ? ar.lesion_count : (ar.lesionCount != null ? ar.lesionCount : listCopy.length),
+        lesion_list: listCopy,
+        original: ar.original || fn || '',
+        ai_result: ar.ai_result || ar.aiResult || this.resolvedAiResultPath || '',
+        diagnosis: ar.diagnosis || '',
+        total_infection_area: ar.total_infection_area != null ? ar.total_infection_area : ar.totalInfectionArea,
+        infection_rate: ar.infection_rate != null ? ar.infection_rate : ar.infectionRate,
+        severity: ar.severity,
+        pneumonia_type: ar.pneumonia_type || ar.pneumoniaType,
+        treatment_suggestion: ar.treatment_suggestion || ar.treatmentSuggestion,
+        further_examination: ar.further_examination || ar.furtherExamination
+      }
+    },
+    async openFusionReportDialog() {
+      if (!checkPermi(['ai:image:record'])) {
+        this.$modal.msgError('无权限：需要 ai:image:record')
+        return
+      }
+      if (!this.currentXray) {
+        this.$modal.msgWarning('请先选择并加载一张胸片')
+        return
+      }
+      if (!this.aiResult) {
+        this.$modal.msgWarning('请先执行「AI 病灶分析」')
+        return
+      }
+      const caseText = this.recordPlainText || ''
+      if (!String(caseText).trim()) {
+        this.$modal.msgWarning('请先导入或绑定电子病历（右侧需有病历文本）')
+        return
+      }
+      this.fusionDialogVisible = true
+      this.fusionPanelLoading = true
+      this.fusionEnvelope = null
+      this.doctorAdvice = ''
+      this.doctorSignature = this.$store.getters.nickName || this.$store.getters.name || ''
+      this.fusionCollapseNames = ['ms', 'cc', 'fc', 'dg', 'sg']
+      const imageResult = this.buildImageResultForFusion()
+      if (!imageResult) {
+        this.fusionPanelLoading = false
+        this.fusionDialogVisible = false
+        return
+      }
+      const labData = buildFusionLabPayload(this.latestLab) || {}
+      try {
+        const ajax = await fusionAnalyze(this.currentXray.id, {
+          imageResult,
+          caseText,
+          labData
+        })
+        const py = ajax && ajax.data
+        if (!py) {
+          this.$modal.msgError('融合服务返回为空')
+          this.fusionDialogVisible = false
+          return
+        }
+        const ic = py.code
+        const ok = ic === 200 || ic === '200' || (typeof ic === 'number' && Number(ic) === 200)
+        if (!ok) {
+          this.$modal.msgError(py.msg || '融合分析失败')
+          this.fusionDialogVisible = false
+          return
+        }
+        this.fusionEnvelope = py
+      } catch (e) {
+        this.fusionDialogVisible = false
+        const msg = (e && e.message) || (typeof e === 'string' ? e : '') || '融合分析请求失败'
+        this.$modal.msgError(msg)
+      } finally {
+        this.fusionPanelLoading = false
+      }
+    },
+    async confirmExportFusionWord() {
+      const sig = (this.doctorSignature || '').trim()
+      if (!sig) {
+        this.$modal.msgWarning('请填写医生签名')
+        return
+      }
+      if (!this.fusionEnvelope || !this.currentXray) return
+      const imageResult = this.buildImageResultForFusion()
+      if (!imageResult) {
+        this.$modal.msgWarning('缺少 AI 影像结果')
+        return
+      }
+      const labData = buildFusionLabPayload(this.latestLab) || {}
+      this.fusionExportLoading = true
+      try {
+        const data = await exportFusionReport(this.currentXray.id, {
+          doctorSignature: sig,
+          doctorAdvice: this.doctorAdvice || '',
+          fusionResponse: this.fusionEnvelope,
+          imageResult,
+          caseText: this.recordPlainText || '',
+          labData
+        })
+        if (!blobValidate(data)) {
+          let err = '导出失败'
+          try {
+            const t = await data.text()
+            const o = JSON.parse(t)
+            err = o.msg || err
+          } catch (e) { /* ignore */ }
+          this.$modal.msgError(err)
+          return
+        }
+        const patientName = this.currentXray.patientName || '\u60a3\u8005'
+        const filename = `\u591a\u6a21\u6001\u8f85\u52a9\u8bca\u65ad\u62a5\u544a_${patientName}_${new Date().getTime()}.docx`
         saveAs(new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }), filename)
-      })
+        this.fusionDialogVisible = false
+        this.$router.push({ path: '/patient/list' }).catch(() => {})
+      } catch (e) {
+        this.$modal.msgError((e && e.message) || '\u5bfc\u51fa\u5931\u8d25')
+      } finally {
+        this.fusionExportLoading = false
+      }
+    },
+    onFusionDialogClosed() {
+      this.fusionEnvelope = null
+      this.fusionExportLoading = false
     },
     toggleFullscreen() {
       const el = this.$refs.pacsRoot

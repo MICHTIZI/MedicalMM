@@ -33,6 +33,10 @@ minio:
   secretKey: minioadmin
   bucketName: medical-imaging
 
+emr:
+  fusion:
+    base-url: http://127.0.0.1:5200
+
 springdoc:
   gatewayUrl: http://localhost:8080/${spring.application.name}
   api-docs:

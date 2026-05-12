@@ -36,11 +36,24 @@ export function getAiImageRecord(imageId) {
   })
 }
 
-export function exportAiImageReport(imageId) {
+export function exportFusionReport(imageId, body) {
   return request({
-    url: '/emr/aiImage/' + imageId + '/exportReport',
+    url: '/emr/aiImage/' + imageId + '/exportFusionReport',
     method: 'post',
-    responseType: 'blob'
+    data: body,
+    responseType: 'blob',
+    timeout: 180000,
+    headers: { repeatSubmit: false }
+  })
+}
+
+export function fusionAnalyze(imageId, body) {
+  return request({
+    url: '/emr/aiImage/' + imageId + '/fusionAnalyze',
+    method: 'post',
+    data: body,
+    timeout: 120000,
+    headers: { repeatSubmit: false }
   })
 }
 

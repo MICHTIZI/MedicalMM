@@ -3,20 +3,14 @@ package com.ruoyi.emr.controller;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.Date;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.apache.poi.util.Units;
-import org.apache.poi.xwpf.usermodel.ParagraphAlignment;
-import org.apache.poi.xwpf.usermodel.XWPFDocument;
-import org.apache.poi.xwpf.usermodel.XWPFParagraph;
-import org.apache.poi.xwpf.usermodel.XWPFRun;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -31,15 +25,15 @@ import com.ruoyi.common.core.web.domain.AjaxResult;
 import com.ruoyi.common.core.web.page.PageDomain;
 import com.ruoyi.common.core.web.page.TableDataInfo;
 import com.ruoyi.common.core.web.page.TableSupport;
-import com.ruoyi.common.core.utils.DateUtils;
 import com.ruoyi.common.security.annotation.RequiresPermissions;
 import com.ruoyi.emr.config.MinioConfig;
 import com.ruoyi.emr.domain.ChestXray;
-import com.ruoyi.emr.domain.MedicalRecord;
+import com.ruoyi.emr.domain.dto.FusionAnalyzeRequest;
+import com.ruoyi.emr.domain.dto.FusionExportRequest;
 import com.ruoyi.emr.domain.query.ChestXrayQuery;
 import com.ruoyi.emr.service.IAiImageAnalysisService;
+import com.ruoyi.emr.service.IFusionReportService;
 import com.ruoyi.emr.service.IChestXrayService;
-import com.ruoyi.emr.service.IMedicalPatientDiagnosisService;
 import io.minio.GetObjectArgs;
 import io.minio.MinioClient;
 import io.minio.StatObjectArgs;
@@ -62,7 +56,7 @@ public class AiImageAnalysisController extends BaseController
     private MinioConfig minioConfig;
 
     @Autowired
-    private IMedicalPatientDiagnosisService medicalPatientDiagnosisService;
+    private IFusionReportService fusionReportService;
 
     @RequiresPermissions("ai:image:list")
     @GetMapping("/list")
@@ -115,46 +109,38 @@ public class AiImageAnalysisController extends BaseController
     }
 
     @RequiresPermissions("ai:image:record")
-    @PostMapping("/{imageId}/exportReport")
-    public void exportReport(@PathVariable Long imageId, HttpServletResponse response)
+    @PostMapping("/{imageId}/fusionAnalyze")
+    public AjaxResult fusionAnalyze(@PathVariable Long imageId, @RequestBody FusionAnalyzeRequest body)
     {
-        ChestXray xray = chestXrayService.getById(imageId);
-        MedicalRecord record = aiImageAnalysisService.getGeneratedRecord(imageId);
-        if (xray == null || record == null)
+        try
         {
-            writeTextError(response, "Report record does not exist");
-            return;
+            return success(fusionReportService.fusionAnalyze(imageId, body));
         }
-        String patientName = safeText(xray.getPatientName(), "\u672a\u77e5\u60a3\u8005");
-        String timeText = DateUtils.parseDateToStr("yyyyMMddHHmmss", new Date());
-        String fileName = "\u75c5\u5386\u62a5\u544a_" + patientName + "_" + timeText + ".docx";
-
-        try (XWPFDocument doc = new XWPFDocument())
+        catch (ServiceException e)
         {
-            addTitle(doc, "\u80ba\u708e\u591a\u6a21\u6001\u8f85\u52a9\u8bca\u65ad\u62a5\u544a");
-            addMeta(doc, "\u60a3\u8005\u59d3\u540d", patientName);
-            addMeta(doc, "\u68c0\u67e5\u65f6\u95f4", DateUtils.parseDateToStr("yyyy-MM-dd HH:mm:ss", xray.getCreateTime()));
-            addMeta(doc, "\u75c5\u7076\u6570\u91cf", String.valueOf(xray.getLesionCount() == null ? 0 : xray.getLesionCount()));
-            addMeta(doc, "AI\u8bca\u65ad\u7ed3\u679c", safeText(xray.getDiagnosis(), "\u6682\u65e0"));
-            addSection(doc, "\u4e3b\u8bc9", record.getChiefComplaint());
-            addSection(doc, "\u73b0\u75c5\u53f2", record.getPresentHistory());
-            addSection(doc, "\u65e2\u5f80\u53f2", record.getPastHistory());
-            addSection(doc, "\u4f53\u683c\u68c0\u67e5", record.getPhysicalExam());
-            addSection(doc, "\u521d\u6b65\u8bca\u65ad", record.getInitialDiagnosis());
-            addImageSection(doc, xray, record);
-
-            response.setContentType("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
-            response.setCharacterEncoding("utf-8");
-            response.setHeader("Content-Disposition", "attachment; filename*=UTF-8''" + URLEncoder.encode(fileName, StandardCharsets.UTF_8.name()).replace("+", "%20"));
-            doc.write(response.getOutputStream());
-            if (xray.getPatientId() != null)
-            {
-                medicalPatientDiagnosisService.markReportExported(xray.getPatientId());
-            }
+            return error(e.getMessage());
         }
         catch (Exception e)
         {
-            writeTextError(response, "Export report failed: " + e.getMessage());
+            return error("Fusion analyze failed: " + e.getMessage());
+        }
+    }
+
+    @RequiresPermissions("ai:image:record")
+    @PostMapping("/{imageId}/exportFusionReport")
+    public void exportFusionReport(@PathVariable Long imageId, @RequestBody FusionExportRequest body, HttpServletResponse response)
+    {
+        try
+        {
+            fusionReportService.exportFusionWord(imageId, body, response);
+        }
+        catch (ServiceException e)
+        {
+            writeTextError(response, e.getMessage());
+        }
+        catch (Exception e)
+        {
+            writeTextError(response, "Export failed: " + e.getMessage());
         }
     }
 
@@ -212,91 +198,6 @@ public class AiImageAnalysisController extends BaseController
         if (lower.endsWith(".gif")) return "image/gif";
         if (lower.endsWith(".webp")) return "image/webp";
         return "application/octet-stream";
-    }
-
-    private void addTitle(XWPFDocument doc, String text)
-    {
-        XWPFParagraph paragraph = doc.createParagraph();
-        paragraph.setAlignment(ParagraphAlignment.CENTER);
-        XWPFRun run = paragraph.createRun();
-        run.setBold(true);
-        run.setFontSize(18);
-        run.setText(text);
-    }
-
-    private void addMeta(XWPFDocument doc, String label, String value)
-    {
-        XWPFParagraph paragraph = doc.createParagraph();
-        XWPFRun labelRun = paragraph.createRun();
-        labelRun.setBold(true);
-        labelRun.setText(label + "：");
-        XWPFRun valueRun = paragraph.createRun();
-        valueRun.setText(safeText(value, "暂无"));
-    }
-
-    private void addSection(XWPFDocument doc, String title, String content)
-    {
-        XWPFParagraph titleParagraph = doc.createParagraph();
-        XWPFRun titleRun = titleParagraph.createRun();
-        titleRun.setBold(true);
-        titleRun.setFontSize(13);
-        titleRun.setText(title);
-
-        XWPFParagraph contentParagraph = doc.createParagraph();
-        XWPFRun contentRun = contentParagraph.createRun();
-        contentRun.setText(safeText(content, "暂无"));
-    }
-
-    private void addImageSection(XWPFDocument doc, ChestXray xray, MedicalRecord record)
-    {
-        String imagePath = safeText(record.getAiResultPath(), deriveAiResultPath(xray.getImagePath()));
-        addSection(doc, "AI标注图", "");
-        if (imagePath == null || imagePath.isEmpty())
-        {
-            return;
-        }
-        String objectPath = normalizeObjectPath(imagePath);
-        try (InputStream inputStream = minioClient.getObject(GetObjectArgs.builder()
-                .bucket(minioConfig.getBucketName())
-                .object(objectPath)
-                .build()))
-        {
-            XWPFParagraph paragraph = doc.createParagraph();
-            paragraph.setAlignment(ParagraphAlignment.CENTER);
-            XWPFRun run = paragraph.createRun();
-            run.addPicture(inputStream, pictureType(objectPath), objectPath, Units.toEMU(480), Units.toEMU(360));
-        }
-        catch (Exception e)
-        {
-            XWPFParagraph paragraph = doc.createParagraph();
-            XWPFRun run = paragraph.createRun();
-            run.setText("AI标注图读取失败：" + e.getMessage());
-        }
-    }
-
-    private String deriveAiResultPath(String imagePath)
-    {
-        if (imagePath == null || imagePath.isEmpty())
-        {
-            return "";
-        }
-        String normalized = normalizeObjectPath(imagePath);
-        String filename = normalized.substring(normalized.lastIndexOf('/') + 1);
-        return filename.isEmpty() ? "" : "result/" + filename;
-    }
-
-    private int pictureType(String path)
-    {
-        String lower = path.toLowerCase();
-        if (lower.endsWith(".png")) return XWPFDocument.PICTURE_TYPE_PNG;
-        if (lower.endsWith(".gif")) return XWPFDocument.PICTURE_TYPE_GIF;
-        if (lower.endsWith(".bmp")) return XWPFDocument.PICTURE_TYPE_BMP;
-        return XWPFDocument.PICTURE_TYPE_JPEG;
-    }
-
-    private String safeText(String value, String fallback)
-    {
-        return value == null || value.isEmpty() ? fallback : value;
     }
 
     private void writeTextError(HttpServletResponse response, String message)

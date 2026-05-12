@@ -71,7 +71,9 @@ DictData.install()
  */
 
 Vue.use(Element, {
-    size: Cookies.get('size') || 'medium' // set element-ui default size
+    size: Cookies.get('size') || 'medium', // set element-ui default size
+    // 阅片器全屏层 z-index 为 3000，须高于此后 Element 的 Message/Dialog 等才能可见
+    zIndex: 3100
 })
 
 Vue.config.productionTip = false
