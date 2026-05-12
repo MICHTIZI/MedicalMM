@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.emr.mapper.FusionAnalysisReportMapper">
+
+    <resultMap id="FusionAnalysisReportResult" type="com.ruoyi.emr.domain.FusionAnalysisReport">
+        <id property="reportId" column="report_id"/>
+        <result property="patientId" column="patient_id"/>
+        <result property="imageId" column="image_id"/>
+        <result property="medicalRecordId" column="medical_record_id"/>
+        <result property="labResultId" column="lab_result_id"/>
+        <result property="fusionResponseJson" column="fusion_response_json"/>
+        <result property="imageResultJson" column="image_result_json"/>
+        <result property="caseText" column="case_text"/>
+        <result property="labDataJson" column="lab_data_json"/>
+        <result property="doctorSignature" column="doctor_signature"/>
+        <result property="doctorAdvice" column="doctor_advice"/>
+        <result property="isDeleted" column="is_deleted"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="remark" column="remark"/>
+        <result property="patientName" column="patient_name"/>
+        <result property="imageName" column="image_name"/>
+    </resultMap>
+
+    <sql id="selectFusionAnalysisReportVo">
+        SELECT r.report_id, r.patient_id, r.image_id, r.medical_record_id, r.lab_result_id,
+               r.fusion_response_json, r.image_result_json, r.case_text, r.lab_data_json,
+               r.doctor_signature, r.doctor_advice,
+               r.is_deleted, r.create_by, r.create_time, r.update_by, r.update_time, r.remark,
+               p.patient_name, x.image_name
+        FROM fusion_analysis_report r
+        LEFT JOIN medical_patient p ON p.patient_id = r.patient_id
+        LEFT JOIN chest_xray x ON x.id = r.image_id
+    </sql>
+
+    <sql id="selectFusionAnalysisReportListVo">
+        SELECT r.report_id, r.patient_id, r.image_id, r.medical_record_id, r.lab_result_id,
+               r.doctor_signature, r.doctor_advice,
+               r.is_deleted, r.create_by, r.create_time, r.update_by, r.update_time, r.remark,
+               p.patient_name, x.image_name
+        FROM fusion_analysis_report r
+        LEFT JOIN medical_patient p ON p.patient_id = r.patient_id
+        LEFT JOIN chest_xray x ON x.id = r.image_id
+    </sql>
+
+    <select id="selectFusionAnalysisReportList" parameterType="com.ruoyi.emr.domain.FusionAnalysisReport" resultMap="FusionAnalysisReportResult">
+        <include refid="selectFusionAnalysisReportListVo"/>
+        <where>
+            r.is_deleted = 0
+            <if test="patientId != null">
+                AND r.patient_id = #{patientId}
+            </if>
+            <if test="imageId != null">
+                AND r.image_id = #{imageId}
+            </if>
+            <if test="patientName != null and patientName != ''">
+                AND p.patient_name LIKE CONCAT('%', #{patientName}, '%')
+            </if>
+            <if test="patientAttendingDoctorIdScope != null">
+                AND p.attending_doctor_id = #{patientAttendingDoctorIdScope}
+            </if>
+        </where>
+        ORDER BY r.create_time DESC, r.report_id DESC
+    </select>
+
+    <select id="selectFusionAnalysisReportById" parameterType="Long" resultMap="FusionAnalysisReportResult">
+        <include refid="selectFusionAnalysisReportVo"/>
+        WHERE r.report_id = #{reportId} AND r.is_deleted = 0
+    </select>
+
+    <select id="selectByPatientIdAndImageId" resultMap="FusionAnalysisReportResult">
+        <include refid="selectFusionAnalysisReportVo"/>
+        WHERE r.patient_id = #{patientId} AND r.image_id = #{imageId} AND r.is_deleted = 0
+        LIMIT 1
+    </select>
+
+    <insert id="insertFusionAnalysisReport" parameterType="com.ruoyi.emr.domain.FusionAnalysisReport" useGeneratedKeys="true" keyProperty="reportId">
+        INSERT INTO fusion_analysis_report (
+            patient_id, image_id, medical_record_id, lab_result_id,
+            fusion_response_json, image_result_json, case_text, lab_data_json,
+            doctor_signature, doctor_advice,
+            create_by, create_time, remark, is_deleted
+        ) VALUES (
+            #{patientId}, #{imageId}, #{medicalRecordId}, #{labResultId},
+            #{fusionResponseJson}, #{imageResultJson}, #{caseText}, #{labDataJson},
+            #{doctorSignature}, #{doctorAdvice},
+            #{createBy}, #{createTime}, #{remark}, 0
+        )
+    </insert>
+
+    <update id="updateFusionAnalysisReport" parameterType="com.ruoyi.emr.domain.FusionAnalysisReport">
+        UPDATE fusion_analysis_report
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="patientId != null">patient_id = #{patientId},</if>
+            <if test="imageId != null">image_id = #{imageId},</if>
+            <if test="medicalRecordId != null">medical_record_id = #{medicalRecordId},</if>
+            <if test="labResultId != null">lab_result_id = #{labResultId},</if>
+            <if test="fusionResponseJson != null">fusion_response_json = #{fusionResponseJson},</if>
+            <if test="imageResultJson != null">image_result_json = #{imageResultJson},</if>
+            <if test="caseText != null">case_text = #{caseText},</if>
+            <if test="labDataJson != null">lab_data_json = #{labDataJson},</if>
+            <if test="doctorSignature != null">doctor_signature = #{doctorSignature},</if>
+            <if test="doctorAdvice != null">doctor_advice = #{doctorAdvice},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            update_time = NOW(),
+        </trim>
+        WHERE report_id = #{reportId} AND is_deleted = 0
+    </update>
+
+    <update id="logicalDeleteFusionAnalysisReportByIds">
+        UPDATE fusion_analysis_report SET is_deleted = 1, update_time = NOW()
+        WHERE report_id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+</mapper>

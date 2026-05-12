@@ -262,6 +262,7 @@
 import { saveAs } from 'file-saver'
 import { listPatientCards, getPatientDiagnosisDetail } from '@/api/medical/patient'
 import { listAiImage, analyzeAiImage, fusionAnalyze, exportFusionReport, aiImageUrl, uploadAiImageUserOverlay } from '@/api/medical/aiImage'
+import { getFusionReportByImage, saveFusionAnalyze, updateFusionDoctor } from '@/api/medical/fusionReport'
 import { listMedicalRecord } from '@/api/medical/record'
 import { listLab } from '@/api/medical/labResult'
 import { buildLabCompareRows, buildFusionLabPayload } from '@/utils/viewerLabReference'
@@ -311,6 +312,10 @@ export default {
       fusionPanelLoading: false,
       fusionExportLoading: false,
       fusionEnvelope: null,
+      fusionReportId: null,
+      cachedImageResultObject: null,
+      cachedCaseText: '',
+      cachedLabDataObject: null,
       doctorSignature: '',
       doctorAdvice: '',
       fusionCollapseNames: ['ms', 'cc', 'fc', 'dg', 'sg']
@@ -976,21 +981,41 @@ export default {
         this.$modal.msgWarning('请先选择并加载一张胸片')
         return
       }
+      this.fusionDialogVisible = true
+      this.fusionPanelLoading = true
+      this.fusionEnvelope = null
+      this.fusionReportId = null
+      this.cachedImageResultObject = null
+      this.cachedCaseText = ''
+      this.cachedLabDataObject = null
+      this.doctorAdvice = ''
+      this.doctorSignature = this.$store.getters.nickName || this.$store.getters.name || ''
+      this.fusionCollapseNames = ['ms', 'cc', 'fc', 'dg', 'sg']
+      try {
+        const ajax = await getFusionReportByImage(this.currentXray.id)
+        const row = ajax && ajax.data
+        if (row && row.reportId != null) {
+          this.fusionReportId = row.reportId
+          this.applyFusionReportRow(row)
+          this.fusionPanelLoading = false
+          return
+        }
+      } catch (e) {
+        /* no cached row, continue */
+      }
       if (!this.aiResult) {
+        this.fusionPanelLoading = false
+        this.fusionDialogVisible = false
         this.$modal.msgWarning('请先执行「AI 病灶分析」')
         return
       }
       const caseText = this.recordPlainText || ''
       if (!String(caseText).trim()) {
+        this.fusionPanelLoading = false
+        this.fusionDialogVisible = false
         this.$modal.msgWarning('请先导入或绑定电子病历（右侧需有病历文本）')
         return
       }
-      this.fusionDialogVisible = true
-      this.fusionPanelLoading = true
-      this.fusionEnvelope = null
-      this.doctorAdvice = ''
-      this.doctorSignature = this.$store.getters.nickName || this.$store.getters.name || ''
-      this.fusionCollapseNames = ['ms', 'cc', 'fc', 'dg', 'sg']
       const imageResult = this.buildImageResultForFusion()
       if (!imageResult) {
         this.fusionPanelLoading = false
@@ -1018,6 +1043,20 @@ export default {
           return
         }
         this.fusionEnvelope = py
+        const rec = this.linkedRecord
+        const lab = this.latestLab
+        const saveAjax = await saveFusionAnalyze(this.currentXray.id, {
+          fusionResponse: py,
+          imageResult,
+          caseText,
+          labData,
+          medicalRecordId: rec && rec.recordId != null ? rec.recordId : undefined,
+          labResultId: lab && lab.id != null ? lab.id : undefined
+        })
+        const saved = saveAjax && saveAjax.data
+        if (saved && saved.reportId != null) {
+          this.fusionReportId = saved.reportId
+        }
       } catch (e) {
         this.fusionDialogVisible = false
         const msg = (e && e.message) || (typeof e === 'string' ? e : '') || '融合分析请求失败'
@@ -1026,6 +1065,31 @@ export default {
         this.fusionPanelLoading = false
       }
     },
+    applyFusionReportRow(row) {
+      try {
+        const fr = row.fusionResponseJson
+        this.fusionEnvelope = typeof fr === 'string' ? JSON.parse(fr) : fr
+      } catch (e) {
+        this.$modal.msgError('已保存的融合报告 JSON 无法解析')
+        this.fusionDialogVisible = false
+        return
+      }
+      try {
+        const ir = row.imageResultJson
+        this.cachedImageResultObject = ir ? (typeof ir === 'string' ? JSON.parse(ir) : ir) : null
+      } catch (e) {
+        this.cachedImageResultObject = null
+      }
+      this.cachedCaseText = row.caseText || ''
+      try {
+        const ld = row.labDataJson
+        this.cachedLabDataObject = ld ? (typeof ld === 'string' ? JSON.parse(ld) : ld) : {}
+      } catch (e) {
+        this.cachedLabDataObject = {}
+      }
+      this.doctorSignature = row.doctorSignature || this.$store.getters.nickName || this.$store.getters.name || ''
+      this.doctorAdvice = row.doctorAdvice || ''
+    },
     async confirmExportFusionWord() {
       const sig = (this.doctorSignature || '').trim()
       if (!sig) {
@@ -1033,20 +1097,29 @@ export default {
         return
       }
       if (!this.fusionEnvelope || !this.currentXray) return
-      const imageResult = this.buildImageResultForFusion()
+      const imageResult = this.buildImageResultForFusion() || this.cachedImageResultObject
       if (!imageResult) {
-        this.$modal.msgWarning('缺少 AI 影像结果')
+        this.$modal.msgWarning('缺少 AI 影像结果（请重新执行 AI 分析或从已保存报告打开）')
         return
       }
-      const labData = buildFusionLabPayload(this.latestLab) || {}
+      const liveLab = buildFusionLabPayload(this.latestLab) || {}
+      const labData = Object.keys(liveLab).length ? liveLab : (this.cachedLabDataObject || {})
+      const caseText = (this.recordPlainText || '').trim() || (this.cachedCaseText || '')
       this.fusionExportLoading = true
       try {
+        if (this.fusionReportId) {
+          await updateFusionDoctor({
+            reportId: this.fusionReportId,
+            doctorSignature: sig,
+            doctorAdvice: this.doctorAdvice || ''
+          })
+        }
         const data = await exportFusionReport(this.currentXray.id, {
           doctorSignature: sig,
           doctorAdvice: this.doctorAdvice || '',
           fusionResponse: this.fusionEnvelope,
           imageResult,
-          caseText: this.recordPlainText || '',
+          caseText,
           labData
         })
         if (!blobValidate(data)) {
@@ -1073,6 +1146,10 @@ export default {
     onFusionDialogClosed() {
       this.fusionEnvelope = null
       this.fusionExportLoading = false
+      this.fusionReportId = null
+      this.cachedImageResultObject = null
+      this.cachedCaseText = ''
+      this.cachedLabDataObject = null
     },
     toggleFullscreen() {
       const el = this.$refs.pacsRoot
