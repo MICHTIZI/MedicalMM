@@ -12,7 +12,9 @@ export function listAiImage(query) {
 export function analyzeAiImage(imageId) {
   return request({
     url: '/emr/aiImage/' + imageId + '/analyze',
-    method: 'post'
+    method: 'post',
+    timeout: 180000,
+    headers: { repeatSubmit: false }
   })
 }
 

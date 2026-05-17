@@ -139,14 +139,12 @@
           <div class="rp-card">
             <h3 class="rp-title">AI 病灶结果</h3>
             <template v-if="aiResult">
-              <div class="rp-kv"><span>病灶数量</span><b>{{ aiResult.lesionCount != null ? aiResult.lesionCount : (aiResult.lesion_list || aiResult.lesionList || []).length }}</b></div>
-              <div v-if="aiResult.infection_rate != null || aiResult.infectionRate != null" class="rp-kv"><span>感染率</span><b>{{ fmtPct(aiResult.infection_rate != null ? aiResult.infection_rate : aiResult.infectionRate) }}</b></div>
-              <div v-if="aiResult.total_infection_area != null || aiResult.totalInfectionArea != null" class="rp-kv"><span>感染区域面积(px²)</span><b>{{ fmtNum(aiResult.total_infection_area != null ? aiResult.total_infection_area : aiResult.totalInfectionArea) }}</b></div>
-              <div v-if="aiResult.severity" class="rp-kv"><span>严重程度</span><b class="sev">{{ aiResult.severity }}</b></div>
-              <div v-if="aiResult.pneumonia_type || aiResult.pneumoniaType" class="rp-kv"><span>肺炎类型</span><b>{{ aiResult.pneumonia_type || aiResult.pneumoniaType }}</b></div>
-              <div v-if="aiResult.diagnosis" class="rp-block"><span class="lbl">诊断意见</span><p>{{ aiResult.diagnosis }}</p></div>
-              <div v-if="aiResult.treatment_suggestion || aiResult.treatmentSuggestion" class="rp-block"><span class="lbl">诊疗建议</span><p>{{ aiResult.treatment_suggestion || aiResult.treatmentSuggestion }}</p></div>
-              <div v-if="aiResult.further_examination || aiResult.furtherExamination" class="rp-block"><span class="lbl">进一步检查</span><p>{{ aiResult.further_examination || aiResult.furtherExamination }}</p></div>
+              <h4 class="ai-result-subtitle">一、病灶检测（YOLO）</h4>
+              <div class="rp-kv"><span>病灶数量</span><b>{{ aiLesionCount }}</b></div>
+              <div v-if="aiInfectionRate != null" class="rp-kv"><span>感染率</span><b>{{ fmtPct(aiInfectionRate) }}</b></div>
+              <div v-if="aiTotalInfectionArea != null" class="rp-kv"><span>感染区域面积(px²)</span><b>{{ fmtNum(aiTotalInfectionArea) }}</b></div>
+              <div v-if="aiDetectDiagnosis" class="rp-block"><span class="lbl">检测摘要</span><p>{{ aiDetectDiagnosis }}</p></div>
+              
               <el-collapse v-if="lesionListNorm.length" class="rp-collapse">
                 <el-collapse-item title="逐病灶详情" name="1">
                   <div v-for="(lv, i) in lesionListNorm" :key="i" class="lesion-item">
@@ -158,8 +156,14 @@
                   </div>
                 </el-collapse-item>
               </el-collapse>
+              <el-divider class="ai-result-divider" />
+              <h4 class="ai-result-subtitle">二、AI 影像诊断报告</h4>
+              <div v-if="aiReportCreateTime" class="rp-row muted">生成时间：{{ aiReportCreateTime }}</div>
+              <pre v-if="aiDiagnosisReport" class="rp-pre ai-report-pre">{{ aiDiagnosisReport }}</pre>
+              <div v-else class="rp-placeholder sm">报告未生成或内容为空</div>
             </template>
-            <div v-else class="rp-placeholder">执行「AI 病灶分析」后展示结构化结果与画框</div>
+            <div v-else class="rp-placeholder">执行「AI 病灶分析」后展示检测结果与诊断报告</div>
+
           </div>
 
           <div class="rp-card">
@@ -369,6 +373,41 @@ export default {
       const list = this.aiResult.lesion_list || this.aiResult.lesionList || []
       return Array.isArray(list) ? list : []
     },
+    aiLesionCount() {
+      if (!this.aiResult) return 0
+      const ar = this.aiResult
+      if (ar.lesion_count != null) return ar.lesion_count
+      if (ar.lesionCount != null) return ar.lesionCount
+      return this.lesionListNorm.length
+    },
+    aiInfectionRate() {
+      if (!this.aiResult) return null
+      const ar = this.aiResult
+      if (ar.infection_rate != null) return ar.infection_rate
+      if (ar.infectionRate != null) return ar.infectionRate
+      return null
+    },
+    aiTotalInfectionArea() {
+      if (!this.aiResult) return null
+      const ar = this.aiResult
+      if (ar.total_infection_area != null) return ar.total_infection_area
+      if (ar.totalInfectionArea != null) return ar.totalInfectionArea
+      return null
+    },
+    aiDetectDiagnosis() {
+      if (!this.aiResult) return ''
+      return this.aiResult.diagnosis || ''
+    },
+    aiDiagnosisReport() {
+      if (!this.aiResult) return ''
+      const ar = this.aiResult
+      return ar.diagnosis_report || ar.diagnosisReport || ''
+    },
+    aiReportCreateTime() {
+      if (!this.aiResult) return ''
+      const ar = this.aiResult
+      return ar.report_create_time || ar.reportCreateTime || ''
+    },
     displayLesions() {
       return this.lesionListNorm.filter(l => l.x1 != null && l.y1 != null && l.x2 != null && l.y2 != null)
     },
@@ -379,8 +418,8 @@ export default {
       if (!l) return ''
       const pos = l.full_position || l.fullPosition || [l.position, l.lobe].filter(Boolean).join(' ')
       const conf = l.confidence != null ? `置信度 ${(Number(l.confidence) * 100).toFixed(1)}%` : ''
-      const inf = this.aiResult && (this.aiResult.infection_rate != null || this.aiResult.infectionRate != null)
-        ? `感染占比 ${this.fmtPct(this.aiResult.infection_rate != null ? this.aiResult.infection_rate : this.aiResult.infectionRate)}`
+      const inf = this.aiInfectionRate != null
+        ? `感染占比 ${this.fmtPct(this.aiInfectionRate)}`
         : ''
       return [pos, conf, inf].filter(Boolean).join(' · ')
     },
@@ -632,13 +671,21 @@ export default {
       })
     },
     loadAiForCurrentImage() {
-      this.aiResult = null
       const row = this.currentXray
-      if (!row || !row.id) return
+      if (!row || !row.id) {
+        this.aiResult = null
+        return
+      }
       try {
         const raw = sessionStorage.getItem(AI_CACHE_PREFIX + row.id)
-        if (raw) this.aiResult = JSON.parse(raw)
-      } catch (e) {}
+        if (raw) {
+          this.aiResult = JSON.parse(raw)
+        } else {
+          this.aiResult = null
+        }
+      } catch (e) {
+        this.aiResult = null
+      }
     },
     persistAi(rowId, payload) {
       try {
@@ -928,7 +975,7 @@ export default {
           this.persistAi(curId, payload)
           this.annotatedImageKey++
           this.imageViewMode = 'annotated'
-          this.$message.success((res && res.msg) || '检测成功')
+          this.$message.success((res && res.msg) || '病灶检测与报告生成成功')
           if (!pid) return null
           return listAiImage({ patientId: pid, pageNum: 1, pageSize: 200 })
         })
@@ -938,9 +985,13 @@ export default {
             const idx = this.xrayList.findIndex(r => r.id === curId)
             if (idx >= 0) this.currentIndex = idx
           }
-          this.loadAiForCurrentImage()
         })
-        .catch(() => {})
+        .catch((err) => {
+          const msg = (err && err.message) || 'AI 病灶分析失败'
+          if (msg && msg !== 'error') {
+            this.$message.error(msg)
+          }
+        })
         .finally(() => { this.aiLoading = false })
     },
     buildImageResultForFusion() {
@@ -965,11 +1016,7 @@ export default {
         ai_result: ar.ai_result || ar.aiResult || this.resolvedAiResultPath || '',
         diagnosis: ar.diagnosis || '',
         total_infection_area: ar.total_infection_area != null ? ar.total_infection_area : ar.totalInfectionArea,
-        infection_rate: ar.infection_rate != null ? ar.infection_rate : ar.infectionRate,
-        severity: ar.severity,
-        pneumonia_type: ar.pneumonia_type || ar.pneumoniaType,
-        treatment_suggestion: ar.treatment_suggestion || ar.treatmentSuggestion,
-        further_examination: ar.further_examination || ar.furtherExamination
+        infection_rate: ar.infection_rate != null ? ar.infection_rate : ar.infectionRate
       }
     },
     /**
@@ -1517,6 +1564,22 @@ export default {
 }
 .sev {
   color: #c62828;
+}
+.ai-result-subtitle {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #303133;
+}
+.ai-result-divider {
+  margin: 12px 0;
+}
+.ai-report-pre {
+  max-height: 360px;
+}
+.rp-placeholder.sm {
+  padding: 6px 0;
+  font-size: 11px;
 }
 .rp-placeholder {
   font-size: 12px;

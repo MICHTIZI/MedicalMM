@@ -34,6 +34,9 @@ minio:
   bucketName: medical-imaging
 
 emr:
+  ai:
+    detect-url: http://127.0.0.1:5100/ai/detect/minio
+    report-base-url: http://127.0.0.1:5300
   fusion:
     base-url: http://127.0.0.1:5200
 

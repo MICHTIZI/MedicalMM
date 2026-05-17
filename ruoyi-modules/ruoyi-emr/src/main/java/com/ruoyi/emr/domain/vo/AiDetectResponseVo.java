@@ -2,6 +2,7 @@ package com.ruoyi.emr.domain.vo;
 
 import java.util.List;
 import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
@@ -43,6 +44,17 @@ public class AiDetectResponseVo
     @JsonProperty("further_examination")
     private String furtherExamination;
 
+    /** Structured diagnosis report from {@code /xray/report/generate} (filled by backend after YOLO detect). */
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    @JsonProperty("diagnosis_report")
+    @JsonAlias("diagnosisReport")
+    private String diagnosisReport;
+
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    @JsonProperty("report_create_time")
+    @JsonAlias({ "create_time", "reportCreateTime" })
+    private String reportCreateTime;
+
     public Integer getCode() { return code; }
     public void setCode(Integer code) { this.code = code; }
     public String getMsg() { return msg; }
@@ -69,4 +81,8 @@ public class AiDetectResponseVo
     public void setTreatmentSuggestion(String treatmentSuggestion) { this.treatmentSuggestion = treatmentSuggestion; }
     public String getFurtherExamination() { return furtherExamination; }
     public void setFurtherExamination(String furtherExamination) { this.furtherExamination = furtherExamination; }
+    public String getDiagnosisReport() { return diagnosisReport; }
+    public void setDiagnosisReport(String diagnosisReport) { this.diagnosisReport = diagnosisReport; }
+    public String getReportCreateTime() { return reportCreateTime; }
+    public void setReportCreateTime(String reportCreateTime) { this.reportCreateTime = reportCreateTime; }
 }
