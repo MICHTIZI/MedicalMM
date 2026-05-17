@@ -23,11 +23,18 @@
       </div>
 
       <div class="tb-center">
-        <el-button size="mini" class="tb-btn" icon="el-icon-full-screen" @click="fitToCanvas">铺满画布</el-button>
         <el-button-group class="tb-toggle-group">
           <el-button size="mini" class="tb-btn tb-toggle" :class="{ 'tb-toggle--active': imageViewMode === 'original' }" :type="imageViewMode === 'original' ? 'primary' : ''" :disabled="!currentXray" @click="setImageView('original')">原图</el-button>
           <el-button size="mini" class="tb-btn tb-toggle" :class="{ 'tb-toggle--active': imageViewMode === 'annotated' }" :type="imageViewMode === 'annotated' ? 'primary' : ''" :disabled="!currentXray || !hasAnnotatedView" @click="setImageView('annotated')">标注图</el-button>
         </el-button-group>
+        <span class="tb-label tb-enhance-label">图像增强</span>
+        <el-switch
+          v-model="imageEnhanceEnabled"
+          :disabled="!currentXray || enhanceLoading"
+          active-text="开"
+          inactive-text="关"
+          @change="onEnhanceChange"
+        />
         <el-button size="mini" class="tb-btn tb-draw" :class="{ 'tb-draw--active': drawTool === 'rect' }" :type="drawTool === 'rect' ? 'primary' : ''" icon="el-icon-crop" :disabled="!currentXray || imageViewMode !== 'original'" @click="setDrawTool('rect')">矩形标注</el-button>
         <el-button size="mini" class="tb-btn tb-draw" :class="{ 'tb-draw--active': drawTool === 'brush' }" :type="drawTool === 'brush' ? 'primary' : ''" icon="el-icon-edit" :disabled="!currentXray || imageViewMode !== 'original'" @click="setDrawTool('brush')">画笔</el-button>
         <el-button size="mini" class="tb-btn" icon="el-icon-delete" :disabled="!currentXray || imageViewMode !== 'original'" @click="clearBrushTracks">清除画笔</el-button>
@@ -292,7 +299,7 @@
 <script>
 import { saveAs } from 'file-saver'
 import { listPatientCards, getPatientDiagnosisDetail } from '@/api/medical/patient'
-import { listAiImage, analyzeAiImage, fusionAnalyze, exportFusionReport, aiImageUrl, uploadAiImageUserOverlay } from '@/api/medical/aiImage'
+import { listAiImage, analyzeAiImage, fusionAnalyze, exportFusionReport, aiImageUrl, aiEnhancedImageUrl, ensureXrayEnhance, uploadAiImageUserOverlay } from '@/api/medical/aiImage'
 import { getFusionReportByImage, saveFusionAnalyze, updateFusionDoctor } from '@/api/medical/fusionReport'
 import { listMedicalRecord } from '@/api/medical/record'
 import { listLab } from '@/api/medical/labResult'
@@ -337,6 +344,10 @@ export default {
       isFs: false,
       imgError: false,
       imageViewMode: 'original',
+      imageEnhanceEnabled: false,
+      enhanceLoading: false,
+      enhancedKeys: { original: '', annotated: '' },
+      imageDisplayKey: 0,
       annotatedImageKey: 0,
       overlayUploading: false,
       fusionDialogVisible: false,
@@ -371,13 +382,26 @@ export default {
     },
     displayImageSrc() {
       if (!this.currentXray || !this.currentXray.imagePath) return ''
+      const bust = this.imageDisplayKey + '_' + this.annotatedImageKey
+      const withBust = (base) => {
+        if (!base) return ''
+        const sep = base.includes('?') ? '&' : '?'
+        return base + sep + '_t=' + bust
+      }
+      if (this.imageEnhanceEnabled) {
+        if (this.imageViewMode === 'annotated' && this.hasAnnotatedView) {
+          const key = this.enhancedKeys.annotated || this.resolvedAiResultPath
+          if (key) return withBust(aiEnhancedImageUrl(key, 'annotated'))
+        }
+        const oKey = this.enhancedKeys.original || this.currentXray.imagePath
+        return withBust(aiEnhancedImageUrl(oKey, 'original'))
+      }
       if (this.imageViewMode === 'annotated' && this.hasAnnotatedView) {
         const base = aiImageUrl(this.resolvedAiResultPath)
-        if (!base) return aiImageUrl(this.currentXray.imagePath)
-        const sep = base.includes('?') ? '&' : '?'
-        return base + sep + '_t=' + this.annotatedImageKey
+        if (!base) return withBust(aiImageUrl(this.currentXray.imagePath))
+        return withBust(base)
       }
-      return aiImageUrl(this.currentXray.imagePath)
+      return withBust(aiImageUrl(this.currentXray.imagePath))
     },
     canPrevImg() {
       return this.currentIndex > 0
@@ -633,6 +657,12 @@ export default {
       this.resetViewSoft()
       this.imageViewMode = 'original'
       this.drawTool = null
+      this.enhancedKeys = { original: '', annotated: '' }
+      if (this.imageEnhanceEnabled) {
+        this.refreshEnhanceIfEnabled()
+      } else {
+        this.imageDisplayKey++
+      }
     }
   },
   created() {
@@ -706,6 +736,8 @@ export default {
       this.recordRows = []
       this.labRows = []
       this.imageViewMode = 'original'
+      this.imageEnhanceEnabled = false
+      this.enhancedKeys = { original: '', annotated: '' }
       this.annotatedImageKey = 0
       this.drawTool = null
       if (!this.selectedPatientId) return
@@ -926,6 +958,40 @@ export default {
       }
       if (!this.currentXray) return
       this.imageViewMode = mode
+      this.imageDisplayKey++
+    },
+    async onEnhanceChange(enabled) {
+      if (!enabled) {
+        this.imageEnhanceEnabled = false
+        this.imageDisplayKey++
+        return
+      }
+      if (!this.currentXray) {
+        this.imageEnhanceEnabled = false
+        return
+      }
+      const ok = await this.refreshEnhanceIfEnabled()
+      this.imageEnhanceEnabled = !!ok
+      this.imageDisplayKey++
+    },
+    refreshEnhanceIfEnabled() {
+      if (!this.currentXray) return Promise.resolve(false)
+      this.enhanceLoading = true
+      return ensureXrayEnhance(this.currentXray.id)
+        .then(res => {
+          const d = (res && res.data) || {}
+          this.enhancedKeys = {
+            original: d.originalObjectKey || '',
+            annotated: d.annotatedObjectKey || ''
+          }
+          return true
+        })
+        .catch(err => {
+          const msg = (err && err.message) || '影像增强失败'
+          this.$message.error(msg)
+          return false
+        })
+        .finally(() => { this.enhanceLoading = false })
     },
     setDrawTool(mode) {
       if (!this.currentXray || this.imageViewMode !== 'original') return
@@ -1016,6 +1082,9 @@ export default {
           })
         ])
         this.imageViewMode = 'annotated'
+        if (this.imageEnhanceEnabled) {
+          this.refreshEnhanceIfEnabled().then(() => { this.imageDisplayKey++ })
+        }
       } catch (e) {
         this.$modal.msgError((e && e.message) || '合成或上传失败')
       } finally {
@@ -1037,6 +1106,9 @@ export default {
           this.persistAi(curId, payload)
           this.annotatedImageKey++
           this.imageViewMode = 'annotated'
+          if (this.imageEnhanceEnabled) {
+            this.refreshEnhanceIfEnabled().then(() => { this.imageDisplayKey++ })
+          }
           this.$message.success((res && res.msg) || '病灶检测与报告生成成功')
           if (!pid) return null
           return listAiImage({ patientId: pid, pageNum: 1, pageSize: 200 })
@@ -1408,6 +1480,12 @@ export default {
   font-size: 12px;
   opacity: 0.85;
   margin-right: 4px;
+}
+.tb-enhance-label {
+  margin-left: 8px;
+}
+.tb-center >>> .el-switch__label {
+  color: rgba(255, 255, 255, 0.85);
 }
 .tb-patient-select {
   width: 132px;

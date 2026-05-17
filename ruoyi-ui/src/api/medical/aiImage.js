@@ -68,6 +68,27 @@ export function aiImageUrl(path) {
   return token ? base + '?token=' + encodeURIComponent(token) : base
 }
 
+/** 增强图代理：variant = original | annotated */
+export function aiEnhancedImageUrl(path, variant) {
+  if (!path) return ''
+  const normalized = normalizeMinioPath(path)
+  const encoded = normalized.split('/').map(item => encodeURIComponent(item)).join('/')
+  const seg = variant === 'annotated' ? 'enhanced/annotated' : 'enhanced/original'
+  const base = process.env.VUE_APP_BASE_API + '/emr/aiImage/' + seg + '/' + encoded
+  const token = getToken()
+  return token ? base + '?token=' + encodeURIComponent(token) : base
+}
+
+/** 生成并写入 MinIO 增强桶（幂等，已存在则跳过） */
+export function ensureXrayEnhance(imageId) {
+  return request({
+    url: '/emr/aiImage/' + imageId + '/enhance',
+    method: 'post',
+    timeout: 120000,
+    headers: { repeatSubmit: false }
+  })
+}
+
 export function normalizeMinioPath(path) {
   let value = String(path || '').replace(/\\/g, '/')
   value = value.replace(/^https?:\/\/[^/]+\//, '')

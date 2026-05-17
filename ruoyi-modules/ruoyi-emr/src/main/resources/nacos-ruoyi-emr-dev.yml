@@ -32,6 +32,9 @@ minio:
   accessKey: minioadmin
   secretKey: minioadmin
   bucketName: medical-imaging
+  # 阅片器影像增强（CLAHE+锐化）输出桶，首次增强时自动创建
+  enhancedOriginalBucket: medical-imaging-enhanced
+  enhancedAnnotatedBucket: medical-imaging-enhanced-annotated
 
 emr:
   ai:

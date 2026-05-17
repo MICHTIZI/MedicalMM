@@ -37,6 +37,7 @@
 
     <sql id="selectFusionAnalysisReportListVo">
         SELECT r.report_id, r.patient_id, r.image_id, r.medical_record_id, r.lab_result_id,
+               r.fusion_response_json,
                r.doctor_signature, r.doctor_advice,
                r.is_deleted, r.create_by, r.create_time, r.update_by, r.update_time, r.remark,
                p.patient_name, x.image_name

@@ -34,6 +34,8 @@ import com.ruoyi.emr.domain.query.ChestXrayQuery;
 import com.ruoyi.emr.service.IAiImageAnalysisService;
 import com.ruoyi.emr.service.IFusionReportService;
 import com.ruoyi.emr.service.IChestXrayService;
+import com.ruoyi.emr.service.IXrayImageEnhanceService;
+import com.ruoyi.emr.util.MinioObjectKeyResolver;
 import io.minio.GetObjectArgs;
 import io.minio.MinioClient;
 import io.minio.StatObjectArgs;
@@ -58,6 +60,9 @@ public class AiImageAnalysisController extends BaseController
     @Autowired
     private IFusionReportService fusionReportService;
 
+    @Autowired
+    private IXrayImageEnhanceService xrayImageEnhanceService;
+
     @RequiresPermissions("ai:image:list")
     @GetMapping("/list")
     public TableDataInfo list(ChestXrayQuery query)
@@ -78,6 +83,24 @@ public class AiImageAnalysisController extends BaseController
     public AjaxResult analyze(@PathVariable Long imageId)
     {
         return success(aiImageAnalysisService.analyze(imageId));
+    }
+
+    @RequiresPermissions("ai:image:list")
+    @PostMapping("/{imageId}/enhance")
+    public AjaxResult ensureEnhance(@PathVariable Long imageId)
+    {
+        try
+        {
+            return success(xrayImageEnhanceService.ensureEnhanced(imageId));
+        }
+        catch (ServiceException e)
+        {
+            return error(e.getMessage());
+        }
+        catch (Exception e)
+        {
+            return error("影像增强失败：" + e.getMessage());
+        }
     }
 
     /**
@@ -147,8 +170,31 @@ public class AiImageAnalysisController extends BaseController
     @GetMapping("/image/**")
     public void proxyImage(HttpServletRequest request, HttpServletResponse response)
     {
+        proxyBucketObject(request, response, "/image/", minioConfig.getBucketName());
+    }
+
+    @GetMapping("/enhanced/original/**")
+    public void proxyEnhancedOriginal(HttpServletRequest request, HttpServletResponse response)
+    {
+        proxyBucketObject(request, response, "/enhanced/original/", minioConfig.getEnhancedOriginalBucket());
+    }
+
+    @GetMapping("/enhanced/annotated/**")
+    public void proxyEnhancedAnnotated(HttpServletRequest request, HttpServletResponse response)
+    {
+        proxyBucketObject(request, response, "/enhanced/annotated/", minioConfig.getEnhancedAnnotatedBucket());
+    }
+
+    private void proxyBucketObject(HttpServletRequest request, HttpServletResponse response, String marker, String bucket)
+    {
         String fullPath = (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
-        String raw = fullPath.substring(fullPath.indexOf("/image/") + "/image/".length());
+        int idx = fullPath.indexOf(marker);
+        if (idx < 0)
+        {
+            response.setStatus(400);
+            return;
+        }
+        String raw = fullPath.substring(idx + marker.length());
         try
         {
             raw = URLDecoder.decode(raw, StandardCharsets.UTF_8.name());
@@ -163,14 +209,14 @@ public class AiImageAnalysisController extends BaseController
         try
         {
             StatObjectResponse stat = minioClient.statObject(StatObjectArgs.builder()
-                .bucket(minioConfig.getBucketName())
+                .bucket(bucket)
                 .object(raw)
                 .build());
             response.setContentType(guessContentType(raw));
             response.setContentLengthLong(stat.size());
             response.setHeader("Cache-Control", "max-age=86400");
             try (InputStream is = minioClient.getObject(GetObjectArgs.builder()
-                    .bucket(minioConfig.getBucketName())
+                    .bucket(bucket)
                     .object(raw)
                     .build());
                  OutputStream os = response.getOutputStream())
@@ -213,19 +259,21 @@ public class AiImageAnalysisController extends BaseController
 
     private String normalizeObjectPath(String path)
     {
-        if (path == null)
-        {
-            return "";
-        }
-        String normalized = path.replace("\\", "/");
-        while (normalized.startsWith("/"))
-        {
-            normalized = normalized.substring(1);
-        }
+        String normalized = MinioObjectKeyResolver.normalizeObjectPath(path);
         String bucketPrefix = minioConfig.getBucketName() + "/";
         if (normalized.startsWith(bucketPrefix))
         {
             normalized = normalized.substring(bucketPrefix.length());
+        }
+        String eo = minioConfig.getEnhancedOriginalBucket() + "/";
+        if (normalized.startsWith(eo))
+        {
+            normalized = normalized.substring(eo.length());
+        }
+        String ea = minioConfig.getEnhancedAnnotatedBucket() + "/";
+        if (normalized.startsWith(ea))
+        {
+            normalized = normalized.substring(ea.length());
         }
         return normalized;
     }

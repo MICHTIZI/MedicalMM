@@ -33,6 +33,7 @@ import com.ruoyi.emr.mapper.AiImageAnalysisMapper;
 import com.ruoyi.emr.mapper.MedicalPatientMapper;
 import com.ruoyi.emr.service.IAiImageAnalysisResultService;
 import com.ruoyi.emr.service.IAiImageAnalysisService;
+import com.ruoyi.emr.service.IXrayImageEnhanceService;
 import com.ruoyi.emr.service.IChestXrayService;
 import com.ruoyi.emr.service.IMedicalPatientDiagnosisService;
 import com.ruoyi.emr.support.PatientArchiveGuard;
@@ -74,6 +75,9 @@ public class AiImageAnalysisServiceImpl implements IAiImageAnalysisService
     private PatientArchiveGuard patientArchiveGuard;
 
     @Autowired
+    private IXrayImageEnhanceService xrayImageEnhanceService;
+
+    @Autowired
     private IAiImageAnalysisResultService aiImageAnalysisResultService;
 
     private RestTemplate aiRestTemplate()
@@ -105,6 +109,7 @@ public class AiImageAnalysisServiceImpl implements IAiImageAnalysisService
         {
             medicalPatientDiagnosisService.markAiCompleted(xray.getPatientId());
         }
+        xrayImageEnhanceService.invalidateEnhanced(imageId);
         return detect;
     }
 
@@ -310,6 +315,7 @@ public class AiImageAnalysisServiceImpl implements IAiImageAnalysisService
         xray.setAiResultPath(objectKey);
         chestXrayService.updateById(xray);
         aiImageAnalysisMapper.updateRecordAiResultPathByImageId(imageId, objectKey);
+        xrayImageEnhanceService.invalidateEnhanced(imageId);
         return objectKey;
     }
 

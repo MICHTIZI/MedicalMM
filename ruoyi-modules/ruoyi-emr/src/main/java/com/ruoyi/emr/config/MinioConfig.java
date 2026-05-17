@@ -17,6 +17,10 @@ public class MinioConfig
     private String secretKey;
     private String bucketName;
 
+    private String enhancedOriginalBucket = "medical-imaging-enhanced";
+
+    private String enhancedAnnotatedBucket = "medical-imaging-enhanced-annotated";
+
     public String getUrl() { return url; }
     public void setUrl(String url) { this.url = url; }
 
@@ -28,6 +32,12 @@ public class MinioConfig
 
     public String getBucketName() { return bucketName; }
     public void setBucketName(String bucketName) { this.bucketName = bucketName; }
+
+    public String getEnhancedOriginalBucket() { return enhancedOriginalBucket; }
+    public void setEnhancedOriginalBucket(String enhancedOriginalBucket) { this.enhancedOriginalBucket = enhancedOriginalBucket; }
+
+    public String getEnhancedAnnotatedBucket() { return enhancedAnnotatedBucket; }
+    public void setEnhancedAnnotatedBucket(String enhancedAnnotatedBucket) { this.enhancedAnnotatedBucket = enhancedAnnotatedBucket; }
 
     @Bean
     public MinioClient minioClient()

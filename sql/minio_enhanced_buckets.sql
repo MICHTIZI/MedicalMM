@@ -1,0 +1,7 @@
+-- MinIO 增强桶说明（桶由后端首次增强时自动创建，无需手工建表）
+-- medical-imaging-enhanced           原图 CLAHE+锐化 增强版
+-- medical-imaging-enhanced-annotated 标注图增强版
+-- 对象键与原桶中对应对象键一致，便于一一映射。
+-- Nacos ruoyi-emr-dev.yml:
+--   minio.enhancedOriginalBucket: medical-imaging-enhanced
+--   minio.enhancedAnnotatedBucket: medical-imaging-enhanced-annotated
