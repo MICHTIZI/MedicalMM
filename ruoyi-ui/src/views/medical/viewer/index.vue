@@ -199,43 +199,70 @@
       <div v-loading="fusionPanelLoading">
         <template v-if="fusionEnvelope && !fusionPanelLoading">
           <el-collapse v-model="fusionCollapseNames">
-            <el-collapse-item title="单模态评分" name="ms">
-              <el-descriptions v-if="modalityScores" :column="1" border size="small">
-                <el-descriptions-item v-if="modalityScores.image" label="影像 ImgS">{{ modalityScores.image.score }}/10</el-descriptions-item>
-                <el-descriptions-item v-if="modalityScores.case" label="病例 CaseS">{{ modalityScores.case.score }}/10</el-descriptions-item>
-                <el-descriptions-item v-if="modalityScores.lab" label="检验 LabS">{{ modalityScores.lab.score }}/10</el-descriptions-item>
+            <el-collapse-item title="模态评分" name="ms">
+              <el-descriptions v-if="modalScore" :column="1" border size="small">
+                <el-descriptions-item label="影像评分">{{ pick(modalScore, 'image_score', 'imageScore') }}/10</el-descriptions-item>
+                <el-descriptions-item label="病历评分">{{ pick(modalScore, 'case_score', 'caseScore') }}/10</el-descriptions-item>
+                <el-descriptions-item label="检验评分">{{ pick(modalScore, 'lab_score', 'labScore') }}/10</el-descriptions-item>
+                <el-descriptions-item label="融合总分">{{ pick(modalScore, 'fusion_total_score', 'fusionTotalScore') }}</el-descriptions-item>
+                <el-descriptions-item label="置信系数">{{ pick(modalScore, 'confidence_coefficient', 'confidenceCoefficient') }}</el-descriptions-item>
+              </el-descriptions>
+              <el-descriptions v-else-if="legacyModalityScores" :column="1" border size="small">
+                <el-descriptions-item v-if="legacyModalityScores.image" label="影像">{{ legacyModalityScores.image.score }}/10</el-descriptions-item>
+                <el-descriptions-item v-if="legacyModalityScores.case" label="病历">{{ legacyModalityScores.case.score }}/10</el-descriptions-item>
+                <el-descriptions-item v-if="legacyModalityScores.lab" label="检验">{{ legacyModalityScores.lab.score }}/10</el-descriptions-item>
               </el-descriptions>
               <span v-else>暂无</span>
             </el-collapse-item>
-            <el-collapse-item title="一致性校验" name="cc">
-              <div v-if="consistencyCheck">
-                <p><strong>级别：</strong>{{ consistencyCheck.level || '—' }}</p>
-                <ul v-if="consistencyRules.length" style="margin:8px 0 0 18px;padding:0;">
-                  <li v-for="(cr, idx) in consistencyRules" :key="idx" style="margin-bottom:6px;">
-                    <strong>{{ cr.rule_name || cr.ruleName }}</strong>：{{ cr.report_text || cr.reportText }}
-                  </li>
-                </ul>
-              </div>
-              <span v-else>暂无</span>
-            </el-collapse-item>
-            <el-collapse-item title="综合评分" name="fc">
-              <template v-if="fusionCalc">
-                <p>原始分 {{ fusionCalcRawScore }}，置信系数 {{ fusionCalcConfidenceFactor }}，最终分 {{ fusionCalcFinalScore }}</p>
-                <p v-if="fusionCalcWeights">权重 ImgS={{ fusionCalcWeights.ImgS }}，CaseS={{ fusionCalcWeights.CaseS }}，LabS={{ fusionCalcWeights.LabS }}</p>
+            <el-collapse-item title="诊断结果" name="dg">
+              <template v-if="fusionDiagnosisResult">
+                <p><strong>确诊分级：</strong>{{ pick(fusionDiagnosisResult, 'confirm_grade', 'confirmGrade') }}</p>
+                <p><strong>严重程度：</strong>{{ pick(fusionDiagnosisResult, 'severity_grade', 'severityGrade') }}</p>
+                <p><strong>病原体推断：</strong>{{ pick(fusionDiagnosisResult, 'pathogen_inference', 'pathogenInference') }}</p>
               </template>
-              <span v-else>暂无</span>
-            </el-collapse-item>
-            <el-collapse-item title="诊断输出" name="dg">
-              <template v-if="diagnosisOutput">
+              <template v-else-if="diagnosisOutput">
                 <p>确诊度：{{ diagnosisGradeCn }}（{{ diagnosisGrade }}）</p>
                 <p>严重程度：{{ diagnosisSeverityCn }}（{{ diagnosisSeverity }}）</p>
                 <p>处置：{{ diagnosisAction }}</p>
               </template>
               <span v-else>暂无</span>
             </el-collapse-item>
-            <el-collapse-item title="结构化处置建议" name="sg">
-              <ol v-if="structuredSuggestions.length" style="margin:8px 0 0 18px;padding:0;">
-                <li v-for="(s, i) in structuredSuggestions" :key="i" style="margin-bottom:8px;">
+            <el-collapse-item title="冲突预警" name="warn">
+              <el-table v-if="conflictWarnings.length" :data="conflictWarnings" size="mini" border>
+                <el-table-column label="规则" width="72" align="center">
+                  <template slot-scope="scope">{{ scope.row.rule_id || scope.row.ruleId }}</template>
+                </el-table-column>
+                <el-table-column label="级别" width="72" align="center">
+                  <template slot-scope="scope">
+                    <el-tag size="mini" :type="warningLevelTag(scope.row.warning_level || scope.row.warningLevel)">{{ scope.row.warning_level || scope.row.warningLevel }}</el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column label="预警内容" min-width="280" show-overflow-tooltip>
+                  <template slot-scope="scope">{{ scope.row.warning_content || scope.row.warningContent }}</template>
+                </el-table-column>
+              </el-table>
+              <div v-else-if="consistencyCheck">
+                <p><strong>级别：</strong>{{ consistencyCheck.level || '—' }}</p>
+                <ul v-if="consistencyRules.length" class="fusion-ul">
+                  <li v-for="(cr, idx) in consistencyRules" :key="idx">
+                    <strong>{{ cr.rule_name || cr.ruleName }}</strong>：{{ cr.report_text || cr.reportText }}
+                  </li>
+                </ul>
+              </div>
+              <span v-else>暂无预警</span>
+            </el-collapse-item>
+            <el-collapse-item title="融合诊疗建议" name="advice">
+              <div v-if="fusionAdviceSections.length" class="fusion-advice-wrap">
+                <div v-for="(sec, si) in fusionAdviceSections" :key="si" class="fusion-advice-sec">
+                  <h4 class="fusion-advice-title">{{ sec.title }}</h4>
+                  <div v-for="(item, ii) in sec.items" :key="ii" class="fusion-advice-item">
+                    <p v-if="item.label"><strong>{{ item.label }}：</strong>{{ item.text }}</p>
+                    <p v-else>{{ item.text }}</p>
+                  </div>
+                </div>
+              </div>
+              <ol v-else-if="structuredSuggestions.length" class="fusion-ul">
+                <li v-for="(s, i) in structuredSuggestions" :key="i">
                   <el-tag size="mini" :type="s.priority === 'P0' ? 'danger' : (s.priority === 'P1' ? 'warning' : 'info')">{{ s.priority }}</el-tag>
                   {{ s.category }} — {{ s.content }}
                 </li>
@@ -322,7 +349,7 @@ export default {
       cachedLabDataObject: null,
       doctorSignature: '',
       doctorAdvice: '',
-      fusionCollapseNames: ['ms', 'cc', 'fc', 'dg', 'sg']
+      fusionCollapseNames: ['ms', 'dg', 'warn', 'advice']
     }
   },
   computed: {
@@ -468,14 +495,49 @@ export default {
       if (!lab || !lab.remark) return ''
       return lab.remark
     },
-    fusionCore() {
+    fusionPayload() {
       const e = this.fusionEnvelope
       if (!e || e.data == null || typeof e.data !== 'object') return null
-      return e.data
+      const outer = e.data
+      if (outer.data != null && typeof outer.data === 'object') {
+        return outer.data
+      }
+      return outer
+    },
+    fusionCore() {
+      return this.fusionPayload
+    },
+    modalScore() {
+      const c = this.fusionPayload
+      return c ? (c.modal_score || c.modalScore) : null
+    },
+    legacyModalityScores() {
+      const c = this.fusionPayload
+      return c ? (c.modality_scores || c.modalityScores) : null
+    },
+    fusionDiagnosisResult() {
+      const c = this.fusionPayload
+      return c ? (c.diagnosis_result || c.diagnosisResult) : null
+    },
+    conflictWarnings() {
+      const c = this.fusionPayload
+      const list = c && (c.conflict_warning_list || c.conflictWarningList)
+      return Array.isArray(list) ? list : []
+    },
+    fusionStandardAdvice() {
+      const c = this.fusionPayload
+      return c ? (c.fusion_standard_advice || c.fusionStandardAdvice) : null
+    },
+    fusionAdviceSections() {
+      const adv = this.fusionStandardAdvice
+      if (!adv || typeof adv !== 'object') return []
+      return Object.keys(adv).map(title => ({
+        title,
+        items: this.flattenAdviceBlock(adv[title])
+      }))
     },
     modalityScores() {
-      const c = this.fusionCore
-      return c ? (c.modality_scores || c.modalityScores) : null
+      return this.legacyModalityScores
     },
     consistencyCheck() {
       const c = this.fusionCore
@@ -1007,7 +1069,7 @@ export default {
       }
       const imgPath = row && row.imagePath ? String(row.imagePath) : ''
       const fn = imgPath ? imgPath.replace(/\\/g, '/').split('/').pop() : ''
-      return {
+      const payload = {
         code: ar.code != null ? ar.code : 200,
         msg: ar.msg || 'OK',
         lesion_count: ar.lesion_count != null ? ar.lesion_count : (ar.lesionCount != null ? ar.lesionCount : listCopy.length),
@@ -1018,6 +1080,38 @@ export default {
         total_infection_area: ar.total_infection_area != null ? ar.total_infection_area : ar.totalInfectionArea,
         infection_rate: ar.infection_rate != null ? ar.infection_rate : ar.infectionRate
       }
+      const report = ar.diagnosis_report || ar.diagnosisReport
+      if (report) {
+        payload.diagnosis_report = report
+      }
+      return payload
+    },
+    pick(obj, snakeKey, camelKey) {
+      if (!obj) return '—'
+      const v = obj[snakeKey] != null ? obj[snakeKey] : obj[camelKey]
+      return v != null && v !== '' ? v : '—'
+    },
+    warningLevelTag(level) {
+      const t = String(level || '')
+      if (t.indexOf('\u9ad8') >= 0) return 'danger'
+      if (t.indexOf('\u4e2d') >= 0) return 'warning'
+      return 'info'
+    },
+    flattenAdviceBlock(block) {
+      if (block == null) return []
+      if (typeof block === 'string') {
+        return [{ label: '', text: block }]
+      }
+      if (Array.isArray(block)) {
+        return block.map(t => ({ label: '', text: String(t) }))
+      }
+      if (typeof block === 'object') {
+        return Object.keys(block).map(k => ({
+          label: k,
+          text: typeof block[k] === 'string' ? block[k] : JSON.stringify(block[k], null, 2)
+        }))
+      }
+      return [{ label: '', text: String(block) }]
     },
     /**
      * 浏览器全屏下仅渲染全屏元素子树，挂到 body 的 el-dialog 不可见；打开融合弹窗前先退出全屏。
@@ -1057,7 +1151,7 @@ export default {
       this.cachedLabDataObject = null
       this.doctorAdvice = ''
       this.doctorSignature = this.$store.getters.nickName || this.$store.getters.name || ''
-      this.fusionCollapseNames = ['ms', 'cc', 'fc', 'dg', 'sg']
+      this.fusionCollapseNames = ['ms', 'dg', 'warn', 'advice']
       try {
         const ajax = await getFusionReportByImage(this.currentXray.id)
         const row = ajax && ajax.data
@@ -1666,5 +1760,28 @@ export default {
   font-size: 12px;
   padding-left: 8px;
   padding-right: 26px;
+}
+.fusion-ul {
+  margin: 8px 0 0 18px;
+  padding: 0;
+}
+.fusion-ul li {
+  margin-bottom: 6px;
+}
+.fusion-advice-wrap {
+  max-height: 360px;
+  overflow: auto;
+}
+.fusion-advice-title {
+  margin: 10px 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #303133;
+}
+.fusion-advice-item {
+  margin-bottom: 6px;
+  font-size: 12px;
+  line-height: 1.55;
+  color: #606266;
 }
 </style>

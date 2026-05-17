@@ -221,7 +221,12 @@ public class FusionReportServiceImpl implements IFusionReportService
         Object diag = imageResult.get("diagnosis");
         if (diag != null)
         {
-            addParagraph(doc, "诊断意见：" + diag);
+            addParagraph(doc, "检测摘要：" + diag);
+        }
+        Object dr = imageResult.get("diagnosis_report");
+        if (dr != null && StringUtils.isNotEmpty(String.valueOf(dr)))
+        {
+            addSection(doc, "胸片 AI 诊断报告（原文）", String.valueOf(dr));
         }
         List<Map<String, Object>> list = null;
         Object ll = imageResult.get("lesion_list");
@@ -283,24 +288,78 @@ public class FusionReportServiceImpl implements IFusionReportService
             addParagraph(doc, "（无）");
             return;
         }
-        Object data = fusionResponse.get("data");
-        if (!(data instanceof Map))
+        Map<String, Object> d = unwrapFusionPayload(fusionResponse);
+        if (d == null || d.isEmpty())
         {
             addParagraph(doc, fusionResponse.toString());
             return;
         }
-        Map<String, Object> d = (Map<String, Object>) data;
 
-        Object ms = d.get("modality_scores");
+        Object ms = d.get("modal_score");
+        if (ms == null)
+        {
+            ms = d.get("modality_scores");
+        }
         if (ms instanceof Map)
         {
             Map<String, Object> m = (Map<String, Object>) ms;
-            addParagraph(doc, "单模态评分：");
-            appendModalityScore(doc, m, "image", "ImgS");
-            appendModalityScore(doc, m, "case", "CaseS");
-            appendModalityScore(doc, m, "lab", "LabS");
+            if (m.containsKey("image_score") || m.containsKey("imageScore"))
+            {
+                addParagraph(doc, "\u6a21\u6001\u8bc4\u5206\uff1a\u5f71\u50cf " + str(first(m, "image_score", "imageScore")) + "/10\uff0c\u75c5\u5386 "
+                        + str(first(m, "case_score", "caseScore")) + "/10\uff0c\u68c0\u9a8c "
+                        + str(first(m, "lab_score", "labScore")) + "/10");
+                addParagraph(doc, "\u878d\u5408\u603b\u5206 " + str(first(m, "fusion_total_score", "fusionTotalScore"))
+                        + "\uff0c\u7f6e\u4fe1\u7cfb\u6570 " + str(first(m, "confidence_coefficient", "confidenceCoefficient")));
+            }
+            else
+            {
+                addParagraph(doc, "\u5355\u6a21\u6001\u8bc4\u5206\uff1a");
+                appendModalityScore(doc, m, "image", "ImgS");
+                appendModalityScore(doc, m, "case", "CaseS");
+                appendModalityScore(doc, m, "lab", "LabS");
+            }
         }
 
+        Object dr = d.get("diagnosis_result");
+        if (dr instanceof Map)
+        {
+            Map<String, Object> dg = (Map<String, Object>) dr;
+            addParagraph(doc, "\u786e\u8bca\u5206\u7ea7\uff1a" + str(first(dg, "confirm_grade", "confirmGrade")));
+            addParagraph(doc, "\u4e25\u91cd\u7a0b\u5ea6\uff1a" + str(first(dg, "severity_grade", "severityGrade")));
+            addParagraph(doc, "\u75c5\u539f\u4f53\u63a8\u65ad\uff1a" + str(first(dg, "pathogen_inference", "pathogenInference")));
+        }
+        else
+        {
+            Object diag = d.get("diagnosis_output");
+            if (diag instanceof Map)
+            {
+                Map<String, Object> dg = (Map<String, Object>) diag;
+                addParagraph(doc, "\u8bca\u65ad\u8f93\u51fa\uff1a" + str(dg.get("grade_cn")) + "(" + str(dg.get("grade")) + ") "
+                        + str(dg.get("severity_cn")) + "(" + str(dg.get("severity")) + ")");
+                addParagraph(doc, str(dg.get("action")));
+            }
+        }
+
+        Object warnings = d.get("conflict_warning_list");
+        if (warnings instanceof List)
+        {
+            addParagraph(doc, "\u51b2\u7a81\u9884\u8b66\uff1a");
+            int n = 1;
+            for (Object o : (List<?>) warnings)
+            {
+                if (!(o instanceof Map))
+                {
+                    continue;
+                }
+                Map<String, Object> w = (Map<String, Object>) o;
+                addParagraph(doc, "  " + n + ". [" + str(first(w, "rule_id", "ruleId")) + "] ["
+                        + str(first(w, "warning_level", "warningLevel")) + "] "
+                        + str(first(w, "warning_content", "warningContent")));
+                n++;
+            }
+        }
+        else
+        {
         Object cc = d.get("consistency_check");
         if (cc instanceof Map)
         {
@@ -322,44 +381,101 @@ public class FusionReportServiceImpl implements IFusionReportService
                 }
             }
         }
+        }
 
-        Object fc = d.get("fusion_calculation");
-        if (fc instanceof Map)
+        Object advice = d.get("fusion_standard_advice");
+        if (advice == null)
         {
-            Map<String, Object> f = (Map<String, Object>) fc;
-            addParagraph(doc, "综合评分：原始 " + str(f.get("raw_score")) + " 置信 "
-                    + str(f.get("confidence_factor")) + " 最终 " + str(f.get("final_score")));
-            Object w = f.get("weights");
-            if (w instanceof Map)
+            advice = d.get("fusionStandardAdvice");
+        }
+        if (advice instanceof Map)
+        {
+            addParagraph(doc, "\u878d\u5408\u8bca\u7597\u5efa\u8bae\uff1a");
+            Map<String, Object> adv = (Map<String, Object>) advice;
+            for (Map.Entry<String, Object> sec : adv.entrySet())
             {
-                Map<String, Object> wm = (Map<String, Object>) w;
-                addParagraph(doc, "权重 ImgS=" + str(wm.get("ImgS")) + " CaseS=" + str(wm.get("CaseS")) + " LabS=" + str(wm.get("LabS")));
+                addParagraph(doc, "\u3010" + sec.getKey() + "\u3011");
+                appendAdviceBlock(doc, sec.getValue());
             }
         }
-
-        Object diag = d.get("diagnosis_output");
-        if (diag instanceof Map)
+        else
         {
-            Map<String, Object> dg = (Map<String, Object>) diag;
-            addParagraph(doc, "诊断输出：" + str(dg.get("grade_cn")) + "(" + str(dg.get("grade")) + ") "
-                    + str(dg.get("severity_cn")) + "(" + str(dg.get("severity")) + ")");
-            addParagraph(doc, str(dg.get("action")));
-        }
-
-        Object sg = d.get("structured_suggestions");
-        if (sg instanceof List)
-        {
-            addParagraph(doc, "结构化建议：");
-            int i = 1;
-            for (Object o : (List<?>) sg)
+            Object sg = d.get("structured_suggestions");
+            if (sg instanceof List)
             {
-                if (!(o instanceof Map))
+                addParagraph(doc, "\u7ed3\u6784\u5316\u5efa\u8bae\uff1a");
+                int i = 1;
+                for (Object o : (List<?>) sg)
                 {
-                    continue;
+                    if (!(o instanceof Map))
+                    {
+                        continue;
+                    }
+                    Map<String, Object> s = (Map<String, Object>) o;
+                    addParagraph(doc, "  " + i + ". [" + str(s.get("priority")) + "] [" + str(s.get("category")) + "] " + str(s.get("content")));
+                    i++;
                 }
-                Map<String, Object> s = (Map<String, Object>) o;
-                addParagraph(doc, "  " + i + ". [" + str(s.get("priority")) + "] [" + str(s.get("category")) + "] " + str(s.get("content")));
-                i++;
+            }
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> unwrapFusionPayload(Map<String, Object> fusionResponse)
+    {
+        Object data = fusionResponse.get("data");
+        if (!(data instanceof Map))
+        {
+            return null;
+        }
+        Map<String, Object> outer = (Map<String, Object>) data;
+        Object inner = outer.get("data");
+        if (inner instanceof Map)
+        {
+            return (Map<String, Object>) inner;
+        }
+        return outer;
+    }
+
+    private String first(Map<String, Object> m, String snake, String camel)
+    {
+        if (m == null)
+        {
+            return "";
+        }
+        Object v = m.get(snake);
+        if (v == null)
+        {
+            v = m.get(camel);
+        }
+        return str(v);
+    }
+
+    @SuppressWarnings("unchecked")
+    private void appendAdviceBlock(XWPFDocument doc, Object block)
+    {
+        if (block == null)
+        {
+            return;
+        }
+        if (block instanceof String)
+        {
+            addParagraph(doc, String.valueOf(block));
+            return;
+        }
+        if (block instanceof Map)
+        {
+            Map<String, Object> m = (Map<String, Object>) block;
+            for (Map.Entry<String, Object> e : m.entrySet())
+            {
+                addParagraph(doc, e.getKey() + "\uff1a" + String.valueOf(e.getValue()));
+            }
+            return;
+        }
+        if (block instanceof List)
+        {
+            for (Object o : (List<?>) block)
+            {
+                addParagraph(doc, "  - " + String.valueOf(o));
             }
         }
     }

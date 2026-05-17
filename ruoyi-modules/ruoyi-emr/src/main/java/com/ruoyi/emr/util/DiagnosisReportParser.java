@@ -16,7 +16,7 @@ public final class DiagnosisReportParser
 {
     private static final Pattern SECTION_HEAD = Pattern.compile("(?m)^[\u4e00\u4e8c\u4e09\u56db\u4e94]\u3001(.+)$");
     private static final Pattern NUMBERED_SUB = Pattern.compile("(?m)^\\d+\\.\\s*(.+)$");
-    private static final Pattern KV_LINE = Pattern.compile("^([^£º:\\n]+)[£º:](.+)$");
+    private static final Pattern KV_LINE = Pattern.compile("^([^\\uFF1A:\\n]+)[\\uFF1A:](.+)$");
 
     private DiagnosisReportParser()
     {
