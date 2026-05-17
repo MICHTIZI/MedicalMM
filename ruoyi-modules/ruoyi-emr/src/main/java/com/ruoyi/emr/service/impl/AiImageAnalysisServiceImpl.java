@@ -31,6 +31,7 @@ import com.ruoyi.emr.domain.vo.AiDetectResponseVo;
 import com.ruoyi.emr.domain.vo.AiReportGenerateResponseVo;
 import com.ruoyi.emr.mapper.AiImageAnalysisMapper;
 import com.ruoyi.emr.mapper.MedicalPatientMapper;
+import com.ruoyi.emr.service.IAiImageAnalysisResultService;
 import com.ruoyi.emr.service.IAiImageAnalysisService;
 import com.ruoyi.emr.service.IChestXrayService;
 import com.ruoyi.emr.service.IMedicalPatientDiagnosisService;
@@ -72,6 +73,9 @@ public class AiImageAnalysisServiceImpl implements IAiImageAnalysisService
     @Autowired
     private PatientArchiveGuard patientArchiveGuard;
 
+    @Autowired
+    private IAiImageAnalysisResultService aiImageAnalysisResultService;
+
     private RestTemplate aiRestTemplate()
     {
         SimpleClientHttpRequestFactory f = new SimpleClientHttpRequestFactory();
@@ -96,6 +100,7 @@ public class AiImageAnalysisServiceImpl implements IAiImageAnalysisService
         Integer lesionCount = detect.getLesionCount() == null ? 0 : detect.getLesionCount();
         aiImageAnalysisMapper.updateXrayAiResult(xray.getId(), detect.getAiResultPath(), lesionCount, detect.getDiagnosis());
         saveGeneratedRecord(xray, detect, lesionCount);
+        aiImageAnalysisResultService.insertFromAnalyze(xray, detect);
         if (xray.getPatientId() != null)
         {
             medicalPatientDiagnosisService.markAiCompleted(xray.getPatientId());

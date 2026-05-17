@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.emr.mapper.AiImageAnalysisResultMapper">
+
+    <resultMap id="AiImageAnalysisResultResult" type="com.ruoyi.emr.domain.AiImageAnalysisResult">
+        <id property="analysisId" column="analysis_id"/>
+        <result property="imageId" column="image_id"/>
+        <result property="patientId" column="patient_id"/>
+        <result property="lesionCount" column="lesion_count"/>
+        <result property="infectionRate" column="infection_rate"/>
+        <result property="totalInfectionArea" column="total_infection_area"/>
+        <result property="detectDiagnosis" column="detect_diagnosis"/>
+        <result property="aiResultPath" column="ai_result_path"/>
+        <result property="detectResultJson" column="detect_result_json"/>
+        <result property="diagnosisReportRaw" column="diagnosis_report_raw"/>
+        <result property="diagnosisReportJson" column="diagnosis_report_json"/>
+        <result property="reportCreateTime" column="report_create_time"/>
+        <result property="isDeleted" column="is_deleted"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="patientName" column="patient_name"/>
+        <result property="imageName" column="image_name"/>
+    </resultMap>
+
+    <sql id="selectAiImageAnalysisResultVo">
+        SELECT a.analysis_id, a.image_id, a.patient_id, a.lesion_count, a.infection_rate,
+               a.total_infection_area, a.detect_diagnosis, a.ai_result_path,
+               a.detect_result_json, a.diagnosis_report_raw, a.diagnosis_report_json,
+               a.report_create_time, a.is_deleted, a.create_by, a.create_time,
+               p.patient_name, x.image_name
+        FROM ai_image_analysis_result a
+        LEFT JOIN medical_patient p ON p.patient_id = a.patient_id
+        LEFT JOIN chest_xray x ON x.id = a.image_id
+    </sql>
+
+    <sql id="selectAiImageAnalysisResultListVo">
+        SELECT a.analysis_id, a.image_id, a.patient_id, a.lesion_count, a.infection_rate,
+               a.total_infection_area, a.detect_diagnosis, a.ai_result_path,
+               a.report_create_time, a.is_deleted, a.create_by, a.create_time,
+               p.patient_name, x.image_name
+        FROM ai_image_analysis_result a
+        LEFT JOIN medical_patient p ON p.patient_id = a.patient_id
+        LEFT JOIN chest_xray x ON x.id = a.image_id
+    </sql>
+
+    <select id="selectAiImageAnalysisResultList" parameterType="com.ruoyi.emr.domain.AiImageAnalysisResult" resultMap="AiImageAnalysisResultResult">
+        <include refid="selectAiImageAnalysisResultListVo"/>
+        <where>
+            a.is_deleted = 0
+            <if test="imageId != null">
+                AND a.image_id = #{imageId}
+            </if>
+            <if test="patientId != null">
+                AND a.patient_id = #{patientId}
+            </if>
+            <if test="patientName != null and patientName != ''">
+                AND p.patient_name LIKE CONCAT('%', #{patientName}, '%')
+            </if>
+            <if test="imageName != null and imageName != ''">
+                AND x.image_name LIKE CONCAT('%', #{imageName}, '%')
+            </if>
+            <if test="patientAttendingDoctorIdScope != null">
+                AND p.attending_doctor_id = #{patientAttendingDoctorIdScope}
+            </if>
+        </where>
+        ORDER BY a.create_time DESC, a.analysis_id DESC
+    </select>
+
+    <select id="selectAiImageAnalysisResultById" parameterType="Long" resultMap="AiImageAnalysisResultResult">
+        <include refid="selectAiImageAnalysisResultVo"/>
+        WHERE a.analysis_id = #{analysisId} AND a.is_deleted = 0
+    </select>
+
+    <insert id="insertAiImageAnalysisResult" parameterType="com.ruoyi.emr.domain.AiImageAnalysisResult" useGeneratedKeys="true" keyProperty="analysisId">
+        INSERT INTO ai_image_analysis_result (
+            image_id, patient_id, lesion_count, infection_rate, total_infection_area,
+            detect_diagnosis, ai_result_path, detect_result_json,
+            diagnosis_report_raw, diagnosis_report_json, report_create_time,
+            create_by, create_time, is_deleted
+        ) VALUES (
+            #{imageId}, #{patientId}, #{lesionCount}, #{infectionRate}, #{totalInfectionArea},
+            #{detectDiagnosis}, #{aiResultPath}, #{detectResultJson},
+            #{diagnosisReportRaw}, #{diagnosisReportJson}, #{reportCreateTime},
+            #{createBy}, #{createTime}, 0
+        )
+    </insert>
+
+    <update id="logicalDeleteAiImageAnalysisResultByIds">
+        UPDATE ai_image_analysis_result SET is_deleted = 1
+        WHERE analysis_id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+</mapper>
