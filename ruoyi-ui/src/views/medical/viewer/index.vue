@@ -928,7 +928,7 @@ export default {
           this.persistAi(curId, payload)
           this.annotatedImageKey++
           this.imageViewMode = 'annotated'
-          this.$message.success((res && res.msg) || '\u68c0\u6d4b\u6210\u529f')
+          this.$message.success((res && res.msg) || '检测成功')
           if (!pid) return null
           return listAiImage({ patientId: pid, pageNum: 1, pageSize: 200 })
         })
@@ -1152,13 +1152,13 @@ export default {
           this.$modal.msgError(err)
           return
         }
-        const patientName = this.currentXray.patientName || '\u60a3\u8005'
-        const filename = `\u591a\u6a21\u6001\u8f85\u52a9\u8bca\u65ad\u62a5\u544a_${patientName}_${new Date().getTime()}.docx`
+        const patientName = this.currentXray.patientName || '患者'
+        const filename = `多模态辅助诊断报告_${patientName}_${new Date().getTime()}.docx`
         saveAs(new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }), filename)
         this.fusionDialogVisible = false
         this.$router.push({ path: '/patient/list' }).catch(() => {})
       } catch (e) {
-        this.$modal.msgError((e && e.message) || '\u5bfc\u51fa\u5931\u8d25')
+        this.$modal.msgError((e && e.message) || '导出失败')
       } finally {
         this.fusionExportLoading = false
       }

@@ -68,12 +68,12 @@ public class MedicalPatientServiceImpl implements IMedicalPatientService
     {
         if (patientId == null)
         {
-            throw new ServiceException("patientId required");
+            throw new ServiceException("缺少患者编号");
         }
         MedicalPatient p = medicalPatientMapper.selectMedicalPatientByPatientId(patientId);
         if (p == null)
         {
-            throw new ServiceException("Patient does not exist");
+            throw new ServiceException("患者不存在");
         }
         checkPatientOwner(p);
         medicalPatientDiagnosisService.ensureInitialRow(patientId);
@@ -177,7 +177,7 @@ public class MedicalPatientServiceImpl implements IMedicalPatientService
     {
         if (patientId == null)
         {
-            throw new ServiceException("patientId required");
+            throw new ServiceException("缺少患者编号");
         }
         MedicalPatient old = medicalPatientMapper.selectMedicalPatientByPatientId(patientId);
         checkPatientOwner(old);
@@ -212,7 +212,7 @@ public class MedicalPatientServiceImpl implements IMedicalPatientService
     {
         if (patientId == null)
         {
-            throw new ServiceException("patientId required");
+            throw new ServiceException("缺少患者编号");
         }
         MedicalPatient old = medicalPatientMapper.selectMedicalPatientByPatientId(patientId);
         checkPatientOwner(old);
@@ -236,7 +236,7 @@ public class MedicalPatientServiceImpl implements IMedicalPatientService
     {
         if (!SecurityUtils.isAdmin())
         {
-            throw new ServiceException("Only admins can view doctor assignment options");
+            throw new ServiceException("仅管理员可查看主治医生分配选项");
         }
         return medicalPatientMapper.selectDoctorOptions();
     }
@@ -276,7 +276,7 @@ public class MedicalPatientServiceImpl implements IMedicalPatientService
         String doctorName = medicalPatientMapper.selectDoctorNickNameById(patient.getAttendingDoctorId());
         if (StringUtils.isEmpty(doctorName))
         {
-            throw new ServiceException("Attending doctor does not exist or is not active");
+            throw new ServiceException("主治医生不存在或账号已停用");
         }
         patient.setAttendingDoctor(doctorName);
     }
@@ -300,7 +300,7 @@ public class MedicalPatientServiceImpl implements IMedicalPatientService
         Long userId = SecurityUtils.getUserId();
         if (patient.getAttendingDoctorId() == null || !patient.getAttendingDoctorId().equals(userId))
         {
-            throw new ServiceException("No permission to access patients owned by another doctor");
+            throw new ServiceException("无权访问其他主治医生所属患者");
         }
     }
 

@@ -12,7 +12,7 @@ import com.ruoyi.common.core.exception.ServiceException;
 import com.ruoyi.emr.domain.MedicalLabResult;
 
 /**
- * Parses fixed-format lab result TXT exports into {@link MedicalLabResult} (patientId not set).
+ * 将固定格式的检验结果 TXT 解析为 {@link MedicalLabResult}（不含 patientId）。
  */
 public final class LabResultTxtParser
 {
@@ -36,7 +36,7 @@ public final class LabResultTxtParser
     {
         if (StringUtils.isBlank(text))
         {
-            throw new ServiceException("Import file is empty");
+            throw new ServiceException("导入文件为空");
         }
         MedicalLabResult lab = new MedicalLabResult();
         String[] lines = text.split("\\R");
@@ -47,106 +47,106 @@ public final class LabResultTxtParser
             {
                 continue;
             }
-            if (tryDate(lab, line, "\u68c0\u9a8c\u65e5\u671f:"))
+            if (tryDate(lab, line, "检验日期:") || tryDate(lab, line, "检验日期："))
             {
                 continue;
             }
-            if (line.startsWith("\u68c0\u9a8c\u533b\u751f:") || line.startsWith("\u68c0\u9a8c\u533b\u751f\uFF1A"))
+            if (line.startsWith("检验医生:") || line.startsWith("检验医生："))
             {
                 lab.setTestDoctor(trimValueAfterColon(line));
                 continue;
             }
-            if (line.startsWith("\u68c0\u9a8c\u79d1\u5ba4:") || line.startsWith("\u68c0\u9a8c\u79d1\u5ba4\uFF1A"))
+            if (line.startsWith("检验科室:") || line.startsWith("检验科室："))
             {
                 lab.setTestDepartment(trimValueAfterColon(line));
                 continue;
             }
-            if (line.startsWith("\u4f53\u6e29:") || line.startsWith("\u4f53\u6e29\uFF1A"))
+            if (line.startsWith("体温:") || line.startsWith("体温："))
             {
                 lab.setTemperature(firstBigDecimal(line));
                 continue;
             }
-            if (line.startsWith("\u5fc3\u7387:") || line.startsWith("\u5fc3\u7387\uFF1A"))
+            if (line.startsWith("心率:") || line.startsWith("心率："))
             {
                 lab.setHeartRate(firstInt(line));
                 continue;
             }
-            if (line.startsWith("\u547c\u5438\u9891\u7387:") || line.startsWith("\u547c\u5438\u9891\u7387\uFF1A"))
+            if (line.startsWith("呼吸频率:") || line.startsWith("呼吸频率："))
             {
                 lab.setRespiratoryRate(firstInt(line));
                 continue;
             }
-            if (line.startsWith("\u6536\u7f29\u538b:") || line.startsWith("\u6536\u7f29\u538b\uFF1A"))
+            if (line.startsWith("收缩压:") || line.startsWith("收缩压："))
             {
                 lab.setSystolicBp(firstInt(line));
                 continue;
             }
-            if (line.startsWith("\u8212\u5f20\u538b:") || line.startsWith("\u8212\u5f20\u538b\uFF1A"))
+            if (line.startsWith("舒张压:") || line.startsWith("舒张压："))
             {
                 lab.setDiastolicBp(firstInt(line));
                 continue;
             }
-            if (line.startsWith("\u8840\u6c27\u9971\u548c\u5ea6:") || line.startsWith("\u8840\u6c27\u9971\u548c\u5ea6\uFF1A"))
+            if (line.startsWith("血氧饱和度:") || line.startsWith("血氧饱和度："))
             {
                 lab.setSpo2(firstBigDecimal(line));
                 continue;
             }
-            if (line.startsWith("\u767d\u7ec6\u80de\u8ba1\u6570:") || line.startsWith("\u767d\u7ec6\u80de\u8ba1\u6570\uFF1A"))
+            if (line.startsWith("白细胞计数:") || line.startsWith("白细胞计数："))
             {
                 lab.setWbc(firstBigDecimal(line));
                 continue;
             }
-            if (line.startsWith("\u4e2d\u6027\u7c92\u7ec6\u80de\u6bd4\u4f8b:") || line.startsWith("\u4e2d\u6027\u7c92\u7ec6\u80de\u6bd4\u4f8b\uFF1A"))
+            if (line.startsWith("中性粒细胞比例:") || line.startsWith("中性粒细胞比例："))
             {
                 lab.setNeutrophilRatio(firstBigDecimal(line));
                 continue;
             }
-            if (line.startsWith("\u6dcb\u5df4\u7ec6\u80de\u6bd4\u4f8b:") || line.startsWith("\u6dcb\u5df4\u7ec6\u80de\u6bd4\u4f8b\uFF1A"))
+            if (line.startsWith("淋巴细胞比例:") || line.startsWith("淋巴细胞比例："))
             {
                 lab.setLymphocyteRatio(firstBigDecimal(line));
                 continue;
             }
-            if (line.startsWith("\u5355\u6838\u7ec6\u80de\u6bd4\u4f8b:") || line.startsWith("\u5355\u6838\u7ec6\u80de\u6bd4\u4f8b\uFF1A"))
+            if (line.startsWith("单核细胞比例:") || line.startsWith("单核细胞比例："))
             {
                 lab.setMonocyteRatio(firstBigDecimal(line));
                 continue;
             }
-            if (line.startsWith("\u8840\u5c0f\u677f\u8ba1\u6570:") || line.startsWith("\u8840\u5c0f\u677f\u8ba1\u6570\uFF1A"))
+            if (line.startsWith("血小板计数:") || line.startsWith("血小板计数："))
             {
                 lab.setPlatelet(firstInt(line));
                 continue;
             }
-            if (line.contains("C\u53cd\u5e94\u86cb\u767d(CRP):") || line.contains("CRP):"))
+            if (line.contains("C反应蛋白(CRP):") || line.contains("CRP):"))
             {
                 lab.setCrp(firstBigDecimal(line));
                 continue;
             }
-            if (line.contains("\u964d\u9499\u7d20\u539f(PCT):") || line.contains("PCT):"))
+            if (line.contains("降钙素原(PCT):") || line.contains("PCT):"))
             {
                 lab.setPct(firstBigDecimal(line));
                 continue;
             }
-            if (line.contains("\u7ea2\u7ec6\u80de\u6c89\u964d\u7387(ESR):") || line.contains("ESR):"))
+            if (line.contains("红细胞沉降率(ESR):") || line.contains("ESR):"))
             {
                 lab.setEsr(firstInt(line));
                 continue;
             }
-            if (line.contains("\u8840\u6db2\u9178\u78b1\u5ea6"))
+            if (line.contains("血液酸碱度"))
             {
                 lab.setPh(firstBigDecimal(line));
                 continue;
             }
-            if (line.contains("\u52a8\u8109\u8840\u6c27\u5206\u538b"))
+            if (line.contains("动脉血氧分压"))
             {
                 lab.setPo2(firstBigDecimal(line));
                 continue;
             }
-            if (line.contains("\u4e8c\u6c27\u5316\u78b3\u5206\u538b"))
+            if (line.contains("二氧化碳分压"))
             {
                 lab.setPco2(firstBigDecimal(line));
                 continue;
             }
-            if (line.contains("\u786b\u9178\u6c22\u6839"))
+            if (line.contains("碳酸氢根"))
             {
                 lab.setHco3(firstBigDecimal(line));
                 continue;
@@ -154,7 +154,7 @@ public final class LabResultTxtParser
         }
         if (lab.getTestDate() == null)
         {
-            throw new ServiceException("Test date missing in TXT (need line starting with examination date)");
+            throw new ServiceException("检验 TXT 中缺少检验日期（需以「检验日期:」开头的行）");
         }
         return lab;
     }
@@ -176,7 +176,7 @@ public final class LabResultTxtParser
         int idx = line.indexOf(':');
         if (idx < 0)
         {
-            idx = line.indexOf('\uFF1A');
+            idx = line.indexOf('：');
         }
         if (idx < 0)
         {
@@ -218,7 +218,7 @@ public final class LabResultTxtParser
         int idx = line.indexOf(':');
         if (idx < 0)
         {
-            idx = line.indexOf('\uFF1A');
+            idx = line.indexOf('：');
         }
         if (idx < 0)
         {
@@ -231,7 +231,7 @@ public final class LabResultTxtParser
     {
         if (StringUtils.isBlank(raw))
         {
-            throw new ServiceException("Test date value is empty");
+            throw new ServiceException("检验日期值为空");
         }
         String[] patterns = {"yyyy-MM-dd HH:mm:ss", "yyyy/MM/dd HH:mm:ss", "yyyy-MM-dd HH:mm"};
         for (String p : patterns)
@@ -244,6 +244,6 @@ public final class LabResultTxtParser
             {
             }
         }
-        throw new ServiceException("Cannot parse test date: " + raw);
+        throw new ServiceException("无法解析检验日期：" + raw);
     }
 }

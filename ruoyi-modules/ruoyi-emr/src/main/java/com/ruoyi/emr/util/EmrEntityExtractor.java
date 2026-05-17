@@ -9,7 +9,7 @@ import com.ruoyi.emr.domain.EmrEntity;
 import com.ruoyi.emr.domain.EmrLabelType;
 
 /**
- * Rule-based NER demo; replace with NLP service if needed.
+ * 基于规则的实体抽取示例；需要时可替换为 NLP 服务。
  */
 public final class EmrEntityExtractor
 {
@@ -26,17 +26,17 @@ public final class EmrEntityExtractor
         }
         Date now = new Date();
         addRegex(list, plainText, EmrLabelType.DISEASE,
-            Pattern.compile("(?:\u8bca\u65ad|\u5165\u9662\u8bca\u65ad|\u51fa\u9662\u8bca\u65ad)[:\\uFF1a]\\s*([^\\n\u3002;\\uFF1B]+)"), now);
+            Pattern.compile("(?:诊断|入院诊断|出院诊断)[:：]\\s*([^\\n。;；]+)"), now);
         addRegex(list, plainText, EmrLabelType.DRUG,
-            Pattern.compile("(?:\u7528\u836f|\u670d\u7528|\u4e88|\u7ed9\u4e88)[:\\uFF1a]?\\s*([\\u4e00-\\u9fa5A-Za-z0-9\\-]+)"), now);
+            Pattern.compile("(?:用药|服用|予|给予)[:：]?\\s*([\\u4e00-\\u9fa5A-Za-z0-9\\-]+)"), now);
         addRegex(list, plainText, EmrLabelType.SURGERY,
-            Pattern.compile("(?:\u624b\u672f\u540d\u79f0|\u672f\u5f0f|\u884c)[:\\uFF1a]?\\s*([^\\n\u3002]+?)(\u672f|\u5207\u9664|\u6210\u5f62)"), now);
+            Pattern.compile("(?:手术名称|术式|行)[:：]?\\s*([^\\n。]+?)(术|切除|成形)"), now);
         addRegex(list, plainText, EmrLabelType.ANATOMY,
-            Pattern.compile("(?:\u90e8\u4f4d|\u89e3\u5256)[:\\uFF1a]\\s*([^\\n\u3002,\\uFF0c;\\uFF1B]+)"), now);
+            Pattern.compile("(?:部位|解剖)[:：]\\s*([^\\n。,，;；]+)"), now);
         addRegex(list, plainText, EmrLabelType.IMAGING,
-            Pattern.compile("(?:CT|MRI|DR|X\u7ebf|\u8d85\u58f0|\u5f71\u50cf)[:\\uFF1a]?\\s*([^\\n\u3002]+)"), now);
+            Pattern.compile("(?:CT|MRI|DR|X线|超声|影像)[:：]?\\s*([^\\n。]+)"), now);
         addRegex(list, plainText, EmrLabelType.LAB,
-            Pattern.compile("(?:\u68c0\u9a8c|\u5b9e\u9a8c\u5ba4|\u8840\u5e38\u89c4|\u751f\u5316)[:\\uFF1a]?\\s*([^\\n\u3002]+)"), now);
+            Pattern.compile("(?:检验|实验室|血常规|生化)[:：]?\\s*([^\\n。]+)"), now);
         return list;
     }
 

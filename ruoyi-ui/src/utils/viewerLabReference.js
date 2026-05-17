@@ -53,38 +53,38 @@ export function buildLabCompareRows(labRow) {
 
 const FUSION_VITAL_KEYS = ['temperature', 'heartRate', 'respiratoryRate', 'systolicBp', 'diastolicBp', 'spo2']
 const FUSION_VITAL_LABELS = {
-  temperature: '\u4f53\u6e29',
-  heartRate: '\u5fc3\u7387',
-  respiratoryRate: '\u547c\u5438\u9891\u7387',
-  systolicBp: '\u6536\u7f29\u538b',
-  diastolicBp: '\u8212\u5f20\u538b',
-  spo2: '\u8840\u6c27\u9971\u548c\u5ea6'
+  temperature: '体温',
+  heartRate: '心率',
+  respiratoryRate: '呼吸频率',
+  systolicBp: '收缩压',
+  diastolicBp: '舒张压',
+  spo2: '血氧饱和度'
 }
 const FUSION_CBC_KEYS = ['wbc', 'neutrophilRatio', 'lymphocyteRatio', 'monocyteRatio', 'platelet']
 const FUSION_CBC_LABELS = {
-  wbc: '\u767d\u7ec6\u80de\u8ba1\u6570',
-  neutrophilRatio: '\u4e2d\u6027\u7c92\u7ec6\u80de\u6bd4\u4f8b',
-  lymphocyteRatio: '\u6dcb\u5df4\u7ec6\u80de\u6bd4\u4f8b',
-  monocyteRatio: '\u5355\u6838\u7ec6\u80de\u6bd4\u4f8b',
-  platelet: '\u8840\u5c0f\u677f\u8ba1\u6570'
+  wbc: '白细胞计数',
+  neutrophilRatio: '中性粒细胞比例',
+  lymphocyteRatio: '淋巴细胞比例',
+  monocyteRatio: '单核细胞比例',
+  platelet: '血小板计数'
 }
 const FUSION_INFLAM_KEYS = ['crp', 'pct', 'esr']
 const FUSION_INFLAM_LABELS = {
-  crp: 'C\u53cd\u5e94\u86cb\u767d(CRP)',
-  pct: '\u964d\u9499\u7d20\u539f(PCT)',
-  esr: '\u7ea2\u7ec6\u80de\u6c89\u964d\u7387(ESR)'
+  crp: 'C反应蛋白(CRP)',
+  pct: '降钙素原(PCT)',
+  esr: '红细胞沉降率(ESR)'
 }
 const FUSION_BLOODGAS_KEYS = ['ph', 'po2', 'pco2', 'hco3']
 const FUSION_BLOODGAS_LABELS = {
-  ph: '\u8840\u6db2\u9178\u78b1\u5ea6(pH)',
-  po2: '\u52a8\u8109\u8840\u6c27\u5206\u538b(PO2)',
-  pco2: '\u52a8\u8109\u8840\u4e8c\u6c27\u5316\u78b3\u5206\u538b(PCO2)',
-  hco3: '\u78b3\u9178\u6c22\u6839(HCO3-)'
+  ph: '血液酸碱度(pH)',
+  po2: '动脉血氧分压(PO2)',
+  pco2: '动脉血二氧化碳分压(PCO2)',
+  hco3: '碳酸氢根(HCO3-)'
 }
 
 function fusionLineFromRow(r) {
   const u = r.unit || ''
-  return `${r.value}${u} (\u6b63\u5e38: ${r.low}-${r.high}${u})`
+  return `${r.value}${u} (正常: ${r.low}-${r.high}${u})`
 }
 
 export function buildFusionLabPayload(labRow) {
@@ -102,9 +102,9 @@ export function buildFusionLabPayload(labRow) {
     })
     if (Object.keys(obj).length) out[title] = obj
   }
-  fill('\u751f\u547d\u4f53\u5f81', FUSION_VITAL_KEYS, FUSION_VITAL_LABELS)
-  fill('\u8840\u5e38\u89c4', FUSION_CBC_KEYS, FUSION_CBC_LABELS)
-  fill('\u708e\u75c7\u6807\u5fd7\u7269', FUSION_INFLAM_KEYS, FUSION_INFLAM_LABELS)
-  fill('\u8840\u6c14\u5206\u6790', FUSION_BLOODGAS_KEYS, FUSION_BLOODGAS_LABELS)
+  fill('生命体征', FUSION_VITAL_KEYS, FUSION_VITAL_LABELS)
+  fill('血常规', FUSION_CBC_KEYS, FUSION_CBC_LABELS)
+  fill('炎症标志物', FUSION_INFLAM_KEYS, FUSION_INFLAM_LABELS)
+  fill('血气分析', FUSION_BLOODGAS_KEYS, FUSION_BLOODGAS_LABELS)
   return out
 }

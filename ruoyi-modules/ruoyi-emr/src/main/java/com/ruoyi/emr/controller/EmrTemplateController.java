@@ -48,7 +48,7 @@ public class EmrTemplateController extends BaseController
         IPage<EmrTemplate> result = emrTemplateService.selectPage(page, query);
         TableDataInfo rsp = new TableDataInfo();
         rsp.setCode(HttpStatus.SUCCESS);
-        rsp.setMsg("??????");
+        rsp.setMsg("查询成功");
         rsp.setRows(result.getRecords());
         rsp.setTotal(result.getTotal());
         return rsp;
@@ -62,7 +62,7 @@ public class EmrTemplateController extends BaseController
     }
 
     @RequiresPermissions("emr:template:add")
-    @Log(title = "???????", businessType = BusinessType.INSERT)
+    @Log(title = "病历模板", businessType = BusinessType.INSERT)
     @PostMapping
     public AjaxResult add(@RequestBody EmrTemplate template)
     {
@@ -72,7 +72,7 @@ public class EmrTemplateController extends BaseController
     }
 
     @RequiresPermissions("emr:template:edit")
-    @Log(title = "???????", businessType = BusinessType.UPDATE)
+    @Log(title = "病历模板", businessType = BusinessType.UPDATE)
     @PutMapping
     public AjaxResult edit(@RequestBody EmrTemplate template)
     {
@@ -81,7 +81,7 @@ public class EmrTemplateController extends BaseController
     }
 
     @RequiresPermissions("emr:template:remove")
-    @Log(title = "???????", businessType = BusinessType.DELETE)
+    @Log(title = "病历模板", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
     public AjaxResult remove(@PathVariable Long[] ids)
     {
@@ -89,18 +89,18 @@ public class EmrTemplateController extends BaseController
     }
 
     @RequiresPermissions("emr:template:export")
-    @Log(title = "??????????", businessType = BusinessType.EXPORT)
+    @Log(title = "病历模板导出", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
     public void export(HttpServletResponse response, EmrTemplate query)
     {
         Page<EmrTemplate> page = new Page<>(1, 5000);
         List<EmrTemplate> list = emrTemplateService.selectPage(page, query).getRecords();
         ExcelUtil<EmrTemplate> util = new ExcelUtil<>(EmrTemplate.class);
-        util.exportExcel(response, list, "???????");
+        util.exportExcel(response, list, "病历模板");
     }
 
     @RequiresPermissions("emr:template:import")
-    @Log(title = "??????????", businessType = BusinessType.IMPORT)
+    @Log(title = "病历模板导入", businessType = BusinessType.IMPORT)
     @PostMapping("/importData")
     public AjaxResult importData(MultipartFile file) throws Exception
     {
@@ -114,6 +114,6 @@ public class EmrTemplateController extends BaseController
             t.setUpdateTime(now);
         }
         emrTemplateService.saveBatch(list);
-        return success("??????? " + list.size() + " ?????");
+        return success("成功导入 " + list.size() + " 条病历模板");
     }
 }

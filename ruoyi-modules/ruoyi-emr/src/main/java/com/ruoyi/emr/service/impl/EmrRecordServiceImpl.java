@@ -122,7 +122,7 @@ public class EmrRecordServiceImpl extends ServiceImpl<EmrRecordMapper, EmrRecord
         }
         if ("1".equals(old.getArchiveStatus()))
         {
-            throw new ServiceException("???r???????????");
+            throw new ServiceException("病历已归档，不允许修改");
         }
         validateEntities(vo.getEntities());
         r.setCreateTime(old.getCreateTime());
@@ -146,7 +146,7 @@ public class EmrRecordServiceImpl extends ServiceImpl<EmrRecordMapper, EmrRecord
         }
         if ("1".equals(old.getArchiveStatus()))
         {
-            throw new ServiceException("???r???????????");
+            throw new ServiceException("病历已归档，不允许删除");
         }
         emrEntityMapper.delete(new LambdaQueryWrapper<EmrEntity>().eq(EmrEntity::getRecordId, id));
         return removeById(id);
@@ -213,13 +213,13 @@ public class EmrRecordServiceImpl extends ServiceImpl<EmrRecordMapper, EmrRecord
     {
         if (list == null || list.isEmpty())
         {
-            return "???????????";
+            return "导入数据为空";
         }
         int ok = 0;
         for (EmrRecordExcel row : list)
         {
             EmrRecord r = new EmrRecord();
-            r.setTitle(StringUtils.isEmpty(row.getTitle()) ? "??????" : row.getTitle());
+            r.setTitle(StringUtils.isEmpty(row.getTitle()) ? "未命名病历" : row.getTitle());
             r.setContent(row.getContent() == null ? "" : row.getContent());
             r.setStructuredJson(row.getStructuredJson());
             r.setDisease(row.getDisease());
@@ -229,7 +229,7 @@ public class EmrRecordServiceImpl extends ServiceImpl<EmrRecordMapper, EmrRecord
             save(r);
             ok++;
         }
-        return "??????? " + ok + " ??????";
+        return "成功导入 " + ok + " 条病历";
     }
 
     private void replaceEntities(Long recordId, List<EmrEntity> entities)
@@ -263,7 +263,7 @@ public class EmrRecordServiceImpl extends ServiceImpl<EmrRecordMapper, EmrRecord
         {
             if (e.getLabelType() != null && !EmrLabelType.isValid(e.getLabelType()))
             {
-                throw new ServiceException("?????????????" + e.getLabelType());
+                throw new ServiceException("实体标注类型无效：" + e.getLabelType());
             }
         }
     }

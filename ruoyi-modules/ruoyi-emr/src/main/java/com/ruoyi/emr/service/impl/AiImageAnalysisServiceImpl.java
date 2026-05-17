@@ -74,12 +74,12 @@ public class AiImageAnalysisServiceImpl implements IAiImageAnalysisService
         }
         catch (RestClientException e)
         {
-            throw new ServiceException("AI detection request failed: " + e.getMessage());
+            throw new ServiceException("AI 检测请求失败：" + e.getMessage());
         }
         AiDetectResponseVo result = response.getBody();
         if (result == null || result.getCode() == null || result.getCode() != 200)
         {
-            throw new ServiceException(result == null ? "AI detection failed" : result.getMsg());
+            throw new ServiceException(result == null ? "AI 检测失败" : result.getMsg());
         }
 
         Integer lesionCount = result.getLesionCount() == null ? 0 : result.getLesionCount();
@@ -191,12 +191,12 @@ public class AiImageAnalysisServiceImpl implements IAiImageAnalysisService
     {
         if (StringUtils.isEmpty(imageName))
         {
-            throw new ServiceException("Image path is empty");
+            throw new ServiceException("影像文件名为空");
         }
         String bucket = minioConfig.getBucketName();
         if (!objectExists(bucket, imageName))
         {
-            throw new ServiceException("Image object not found in MinIO bucket root " + bucket + ": " + imageName);
+            throw new ServiceException("MinIO 存储桶根路径下不存在该影像：" + bucket + "/" + imageName);
         }
     }
 
@@ -220,23 +220,23 @@ public class AiImageAnalysisServiceImpl implements IAiImageAnalysisService
     {
         if (xray == null)
         {
-            throw new ServiceException("Image does not exist");
+            throw new ServiceException("影像不存在");
         }
         if (xray.getPatientId() == null)
         {
-            throw new ServiceException("Image is not bound to a patient");
+            throw new ServiceException("影像未绑定患者");
         }
         if (!SecurityUtils.isAdmin())
         {
             Long userId = SecurityUtils.getUserId();
             if (userId == null)
             {
-                throw new ServiceException("No permission");
+                throw new ServiceException("无访问权限");
             }
             com.ruoyi.emr.domain.MedicalPatient patient = medicalPatientMapper.selectMedicalPatientByPatientId(xray.getPatientId());
             if (patient == null || patient.getAttendingDoctorId() == null || !patient.getAttendingDoctorId().equals(userId))
             {
-                throw new ServiceException("No permission to analyze images of another doctor's patient");
+                throw new ServiceException("无权分析其他主治医生所属患者的影像");
             }
         }
     }
@@ -263,3 +263,17 @@ public class AiImageAnalysisServiceImpl implements IAiImageAnalysisService
         return idx >= 0 ? path.substring(idx + 1) : path;
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+

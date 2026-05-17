@@ -57,7 +57,7 @@ public class ImagingSequenceController extends BaseController
         IPage<ImagingSequence> result = sequenceService.page(page, qw);
         TableDataInfo rsp = new TableDataInfo();
         rsp.setCode(HttpStatus.SUCCESS);
-        rsp.setMsg("\u67e5\u8be2\u6210\u529f");
+        rsp.setMsg("查询成功");
         rsp.setRows(result.getRecords());
         rsp.setTotal(result.getTotal());
         return rsp;
@@ -71,7 +71,7 @@ public class ImagingSequenceController extends BaseController
     }
 
     @RequiresPermissions("imaging:sequence:add")
-    @Log(title = "\u5f71\u50cf\u5e8f\u5217", businessType = BusinessType.INSERT)
+    @Log(title = "影像序列", businessType = BusinessType.INSERT)
     @PostMapping
     public AjaxResult add(@RequestBody ImagingSequence seq)
     {
@@ -82,7 +82,7 @@ public class ImagingSequenceController extends BaseController
     }
 
     @RequiresPermissions("imaging:sequence:edit")
-    @Log(title = "\u5f71\u50cf\u5e8f\u5217", businessType = BusinessType.UPDATE)
+    @Log(title = "影像序列", businessType = BusinessType.UPDATE)
     @PutMapping
     public AjaxResult edit(@RequestBody ImagingSequence seq)
     {
@@ -91,7 +91,7 @@ public class ImagingSequenceController extends BaseController
     }
 
     @RequiresPermissions("imaging:sequence:remove")
-    @Log(title = "\u5f71\u50cf\u5e8f\u5217", businessType = BusinessType.DELETE)
+    @Log(title = "影像序列", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
     public AjaxResult remove(@PathVariable Long[] ids)
     {
@@ -99,7 +99,7 @@ public class ImagingSequenceController extends BaseController
     }
 
     @RequiresPermissions("imaging:sequence:archive")
-    @Log(title = "\u5e8f\u5217\u5f52\u6863", businessType = BusinessType.UPDATE)
+    @Log(title = "序列归档", businessType = BusinessType.UPDATE)
     @PutMapping("/archive/{id}")
     public AjaxResult archive(@PathVariable Long id)
     {

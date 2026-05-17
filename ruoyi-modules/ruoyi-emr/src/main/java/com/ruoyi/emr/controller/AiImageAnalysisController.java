@@ -67,7 +67,7 @@ public class AiImageAnalysisController extends BaseController
         IPage<ChestXray> result = chestXrayService.selectPage(page, query);
         TableDataInfo rsp = new TableDataInfo();
         rsp.setCode(HttpStatus.SUCCESS);
-        rsp.setMsg("success");
+        rsp.setMsg("查询成功");
         rsp.setRows(result.getRecords());
         rsp.setTotal(result.getTotal());
         return rsp;
@@ -122,7 +122,7 @@ public class AiImageAnalysisController extends BaseController
         }
         catch (Exception e)
         {
-            return error("Fusion analyze failed: " + e.getMessage());
+            return error("融合分析失败：" + e.getMessage());
         }
     }
 
@@ -140,7 +140,7 @@ public class AiImageAnalysisController extends BaseController
         }
         catch (Exception e)
         {
-            writeTextError(response, "Export failed: " + e.getMessage());
+            writeTextError(response, "导出失败：" + e.getMessage());
         }
     }
 

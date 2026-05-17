@@ -65,7 +65,7 @@ public class MedicalLabResultServiceImpl implements IMedicalLabResultService
     {
         if (row.getPatientId() == null)
         {
-            throw new ServiceException("Patient is required");
+            throw new ServiceException("请选择患者");
         }
         MedicalPatient patient = requirePatient(row.getPatientId());
         if (!SecurityUtils.isAdmin())
@@ -146,11 +146,11 @@ public class MedicalLabResultServiceImpl implements IMedicalLabResultService
     {
         if (patientId == null)
         {
-            throw new ServiceException("Patient is required for import");
+            throw new ServiceException("导入检验须指定患者");
         }
         if (file == null || file.isEmpty())
         {
-            throw new ServiceException("TXT file is required");
+            throw new ServiceException("请上传 TXT 检验文件");
         }
         MedicalPatient patient = requirePatient(patientId);
         if (!SecurityUtils.isAdmin())
@@ -165,7 +165,7 @@ public class MedicalLabResultServiceImpl implements IMedicalLabResultService
         }
         catch (IOException e)
         {
-            throw new ServiceException("Read upload failed: " + e.getMessage());
+            throw new ServiceException("读取上传文件失败：" + e.getMessage());
         }
         catch (Exception e)
         {
@@ -191,7 +191,7 @@ public class MedicalLabResultServiceImpl implements IMedicalLabResultService
     {
         if (file == null || file.isEmpty())
         {
-            throw new ServiceException("TXT file is required");
+            throw new ServiceException("请上传 TXT 检验文件");
         }
         MedicalLabResult parsed;
         try
@@ -200,7 +200,7 @@ public class MedicalLabResultServiceImpl implements IMedicalLabResultService
         }
         catch (IOException e)
         {
-            throw new ServiceException("Read upload failed: " + e.getMessage());
+            throw new ServiceException("读取上传文件失败：" + e.getMessage());
         }
         catch (Exception e)
         {
@@ -224,7 +224,7 @@ public class MedicalLabResultServiceImpl implements IMedicalLabResultService
         MedicalPatient patient = medicalPatientMapper.selectMedicalPatientByPatientId(patientId);
         if (patient == null)
         {
-            throw new ServiceException("Patient does not exist");
+            throw new ServiceException("患者不存在");
         }
         return patient;
     }
@@ -234,7 +234,7 @@ public class MedicalLabResultServiceImpl implements IMedicalLabResultService
         Long userId = SecurityUtils.getUserId();
         if (patient.getAttendingDoctorId() == null || !patient.getAttendingDoctorId().equals(userId))
         {
-            throw new ServiceException("Only the attending doctor can operate lab data for this patient");
+            throw new ServiceException("仅主治医生可操作该患者的检验数据");
         }
     }
 
@@ -242,7 +242,7 @@ public class MedicalLabResultServiceImpl implements IMedicalLabResultService
     {
         if (row == null)
         {
-            throw new ServiceException("Lab record does not exist");
+            throw new ServiceException("检验记录不存在");
         }
         if (SecurityUtils.isAdmin())
         {
@@ -251,7 +251,7 @@ public class MedicalLabResultServiceImpl implements IMedicalLabResultService
         MedicalPatient patient = medicalPatientMapper.selectMedicalPatientByPatientId(row.getPatientId());
         if (patient == null || patient.getAttendingDoctorId() == null || !patient.getAttendingDoctorId().equals(SecurityUtils.getUserId()))
         {
-            throw new ServiceException("No permission to access this lab record");
+            throw new ServiceException("无权访问该检验记录");
         }
     }
 

@@ -73,15 +73,15 @@ public class FusionAnalysisReportServiceImpl implements IFusionAnalysisReportSer
     {
         if (body == null || body.getFusionResponse() == null || body.getFusionResponse().isEmpty())
         {
-            throw new ServiceException("fusionResponse is required");
+            throw new ServiceException("请提供融合分析返回内容（fusionResponse）");
         }
         if (body.getImageResult() == null || body.getImageResult().isEmpty())
         {
-            throw new ServiceException("imageResult is required");
+            throw new ServiceException("请提供影像 AI 分析结果（imageResult）");
         }
         if (StringUtils.isEmpty(body.getCaseText()))
         {
-            throw new ServiceException("caseText is required");
+            throw new ServiceException("请提供病历文本（caseText）");
         }
         ChestXray xray = chestXrayService.getById(imageId);
         checkXrayAccess(xray);
@@ -102,7 +102,7 @@ public class FusionAnalysisReportServiceImpl implements IFusionAnalysisReportSer
         }
         catch (JsonProcessingException e)
         {
-            throw new ServiceException("JSON serialize failed: " + e.getMessage());
+            throw new ServiceException("JSON 序列化失败：" + e.getMessage());
         }
         row.setCaseText(body.getCaseText());
         row.setUpdateBy(SecurityUtils.getUsername());
@@ -129,7 +129,7 @@ public class FusionAnalysisReportServiceImpl implements IFusionAnalysisReportSer
     {
         if (dto == null || dto.getReportId() == null)
         {
-            throw new ServiceException("reportId is required");
+            throw new ServiceException("缺少报告编号 reportId");
         }
         FusionAnalysisReport cur = fusionAnalysisReportMapper.selectFusionAnalysisReportById(dto.getReportId());
         checkReportAccess(cur);
@@ -148,7 +148,7 @@ public class FusionAnalysisReportServiceImpl implements IFusionAnalysisReportSer
     {
         if (row == null || row.getReportId() == null)
         {
-            throw new ServiceException("reportId is required");
+            throw new ServiceException("缺少报告编号 reportId");
         }
         FusionAnalysisReport cur = fusionAnalysisReportMapper.selectFusionAnalysisReportById(row.getReportId());
         checkReportAccess(cur);
@@ -181,7 +181,7 @@ public class FusionAnalysisReportServiceImpl implements IFusionAnalysisReportSer
     {
         if (row == null)
         {
-            throw new ServiceException("Report not found");
+            throw new ServiceException("融合报告不存在");
         }
         ChestXray xray = chestXrayService.getById(row.getImageId());
         checkXrayAccess(xray);
@@ -191,23 +191,23 @@ public class FusionAnalysisReportServiceImpl implements IFusionAnalysisReportSer
     {
         if (xray == null)
         {
-            throw new ServiceException("Image not found");
+            throw new ServiceException("影像不存在");
         }
         if (xray.getPatientId() == null)
         {
-            throw new ServiceException("Image not bound to patient");
+            throw new ServiceException("影像未绑定患者");
         }
         if (!SecurityUtils.isAdmin())
         {
             Long userId = SecurityUtils.getUserId();
             if (userId == null)
             {
-                throw new ServiceException("No permission");
+                throw new ServiceException("无访问权限");
             }
             MedicalPatient patient = medicalPatientMapper.selectMedicalPatientByPatientId(xray.getPatientId());
             if (patient == null || patient.getAttendingDoctorId() == null || !patient.getAttendingDoctorId().equals(userId))
             {
-                throw new ServiceException("No permission for this patient image");
+                throw new ServiceException("无权访问该患者的影像");
             }
         }
     }

@@ -79,11 +79,11 @@ public class FusionReportServiceImpl implements IFusionReportService
         checkXrayAccess(xray);
         if (body == null || body.getImageResult() == null || body.getImageResult().isEmpty())
         {
-            throw new ServiceException("imageResult is required");
+            throw new ServiceException("请提供影像 AI 分析结果（imageResult）");
         }
         if (StringUtils.isEmpty(body.getCaseText()))
         {
-            throw new ServiceException("case_text is required");
+            throw new ServiceException("请提供病历文本（case_text）");
         }
         Map<String, Object> fusionBody = new LinkedHashMap<>();
         fusionBody.put("image_result", body.getImageResult());
@@ -100,7 +100,7 @@ public class FusionReportServiceImpl implements IFusionReportService
             Map<String, Object> out = resp.getBody();
             if (out == null)
             {
-                throw new ServiceException("Fusion service returned empty body");
+                throw new ServiceException("融合服务返回内容为空");
             }
             Object code = out.get("code");
             boolean ok = false;
@@ -114,13 +114,13 @@ public class FusionReportServiceImpl implements IFusionReportService
             }
             if (!ok)
             {
-                throw new ServiceException(String.valueOf(out.getOrDefault("msg", "Fusion analyze failed")));
+                throw new ServiceException(String.valueOf(out.getOrDefault("msg", "融合分析失败")));
             }
             return out;
         }
         catch (RestClientException e)
         {
-            throw new ServiceException("Cannot reach fusion service at " + fusionProperties.getBaseUrl() + ": " + e.getMessage());
+            throw new ServiceException("无法连接融合分析服务（" + fusionProperties.getBaseUrl() + "）：" + e.getMessage());
         }
     }
 
@@ -129,35 +129,35 @@ public class FusionReportServiceImpl implements IFusionReportService
     {
         if (request == null || StringUtils.isEmpty(request.getDoctorSignature()))
         {
-            throw new ServiceException("Please fill doctor signature");
+            throw new ServiceException("请填写医生签名");
         }
         if (request.getFusionResponse() == null)
         {
-            throw new ServiceException("Fusion result missing");
+            throw new ServiceException("缺少融合分析结果");
         }
         ChestXray xray = chestXrayService.getById(imageId);
         checkXrayAccess(xray);
         MedicalRecord record = aiImageAnalysisService.getGeneratedRecord(imageId);
-        String patientName = safeText(xray.getPatientName(), "\u672a\u77e5\u60a3\u8005");
+        String patientName = safeText(xray.getPatientName(), "未知患者");
         String timeText = DateUtils.parseDateToStr("yyyyMMddHHmmss", new Date());
-        String fileName = "\u591a\u6a21\u6001\u8f85\u52a9\u8bca\u65ad\u62a5\u544a_" + patientName + "_" + timeText + ".docx";
+        String fileName = "多模态辅助诊断报告_" + patientName + "_" + timeText + ".docx";
 
         try (XWPFDocument doc = new XWPFDocument())
         {
-            addTitle(doc, "\u80ba\u708e\u591a\u6a21\u6001\u8f85\u52a9\u8bca\u65ad\u62a5\u544a");
-            addMeta(doc, "\u60a3\u8005\u59d3\u540d", patientName);
-            addMeta(doc, "\u68c0\u67e5\u65f6\u95f4", DateUtils.parseDateToStr("yyyy-MM-dd HH:mm:ss", xray.getCreateTime()));
-            addMeta(doc, "\u62a5\u544a\u751f\u6210\u65f6\u95f4", DateUtils.parseDateToStr("yyyy-MM-dd HH:mm:ss", new Date()));
+            addTitle(doc, "肺炎多模态辅助诊断报告");
+            addMeta(doc, "患者姓名", patientName);
+            addMeta(doc, "检查时间", DateUtils.parseDateToStr("yyyy-MM-dd HH:mm:ss", xray.getCreateTime()));
+            addMeta(doc, "报告生成时间", DateUtils.parseDateToStr("yyyy-MM-dd HH:mm:ss", new Date()));
 
             addImageSection(doc, xray, record);
             addAiLesionSection(doc, request.getImageResult());
-            addSection(doc, "\u7535\u5b50\u75c5\u5386\uff08\u6587\u672c\uff09", request.getCaseText());
+            addSection(doc, "电子病历（文本）", request.getCaseText());
             addLabDataSection(doc, request.getLabData());
             addFusionResultSection(doc, request.getFusionResponse());
 
-            addSection(doc, "\u533b\u751f\u7b7e\u540d", request.getDoctorSignature());
-            addSection(doc, "\u533b\u751f\u5efa\u8bae\uff08\u9009\u586b\uff09",
-                StringUtils.isNotEmpty(request.getDoctorAdvice()) ? request.getDoctorAdvice() : "\uff08\u672a\u586b\u5199\uff09");
+            addSection(doc, "医生签名", request.getDoctorSignature());
+            addSection(doc, "医生建议（选填）",
+                StringUtils.isNotEmpty(request.getDoctorAdvice()) ? request.getDoctorAdvice() : "（未填写）");
 
             response.setContentType("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
             response.setCharacterEncoding("utf-8");
@@ -174,17 +174,17 @@ public class FusionReportServiceImpl implements IFusionReportService
         }
         catch (Exception e)
         {
-            throw new ServiceException("Export Word failed: " + e.getMessage());
+            throw new ServiceException("导出 Word 失败：" + e.getMessage());
         }
     }
 
     private void addImageSection(XWPFDocument doc, ChestXray xray, MedicalRecord record)
     {
         String imagePath = safeText(record != null ? record.getAiResultPath() : null, deriveAiResultPath(xray.getImagePath()));
-        addSection(doc, "AI \u6807\u6ce8\u56fe\uff08MinIO result\uff09", "");
+        addSection(doc, "AI 标注图（MinIO）", "");
         if (imagePath == null || imagePath.isEmpty())
         {
-            addParagraph(doc, "\uff08\u65e0\u8def\u5f84\uff09");
+            addParagraph(doc, "（无路径）");
             return;
         }
         String objectPath = normalizeObjectPath(imagePath);
@@ -200,28 +200,28 @@ public class FusionReportServiceImpl implements IFusionReportService
         }
         catch (Exception e)
         {
-            addParagraph(doc, "AI image read failed: " + e.getMessage());
+            addParagraph(doc, "读取 AI 标注图失败：" + e.getMessage());
         }
     }
 
     @SuppressWarnings("unchecked")
     private void addAiLesionSection(XWPFDocument doc, Map<String, Object> imageResult)
     {
-        addSection(doc, "AI \u75c5\u7076\u7ed3\u679c", "");
+        addSection(doc, "AI 病灶结果", "");
         if (imageResult == null || imageResult.isEmpty())
         {
-            addParagraph(doc, "\uff08\u65e0\uff09");
+            addParagraph(doc, "（无）");
             return;
         }
         Object lc = imageResult.get("lesion_count");
         if (lc != null)
         {
-            addParagraph(doc, "\u75c5\u7076\u6570\u91cf\uff1a" + lc);
+            addParagraph(doc, "病灶数量：" + lc);
         }
         Object diag = imageResult.get("diagnosis");
         if (diag != null)
         {
-            addParagraph(doc, "\u8bca\u65ad\u610f\u89c1\uff1a" + diag);
+            addParagraph(doc, "诊断意见：" + diag);
         }
         List<Map<String, Object>> list = null;
         Object ll = imageResult.get("lesion_list");
@@ -231,7 +231,7 @@ public class FusionReportServiceImpl implements IFusionReportService
         }
         if (list == null || list.isEmpty())
         {
-            addParagraph(doc, "\uff08\u65e0\u75c5\u7076\u6846\u6570\u636e\uff09");
+            addParagraph(doc, "（无病灶框数据）");
             return;
         }
         int i = 1;
@@ -241,8 +241,8 @@ public class FusionReportServiceImpl implements IFusionReportService
             {
                 continue;
             }
-            addParagraph(doc, "\u75c5\u7076 " + i + "\uff1a" + str(m.get("full_position")) + " \u7f6e\u4fe1\u5ea6 "
-                    + formatConf(m.get("confidence")) + " \u6846(" + str(m.get("x1")) + "," + str(m.get("y1")) + ")-("
+            addParagraph(doc, "病灶 " + i + "：" + str(m.get("full_position")) + " 置信度 "
+                    + formatConf(m.get("confidence")) + " 框(" + str(m.get("x1")) + "," + str(m.get("y1")) + ")-("
                     + str(m.get("x2")) + "," + str(m.get("y2")) + ")");
             i++;
         }
@@ -251,15 +251,15 @@ public class FusionReportServiceImpl implements IFusionReportService
     @SuppressWarnings("unchecked")
     private void addLabDataSection(XWPFDocument doc, Map<String, Object> labData)
     {
-        addSection(doc, "\u68c0\u9a8c\u5bf9\u7167\u6570\u636e", "");
+        addSection(doc, "检验对照数据", "");
         if (labData == null || labData.isEmpty())
         {
-            addParagraph(doc, "\uff08\u65e0\uff09");
+            addParagraph(doc, "（无）");
             return;
         }
         for (Map.Entry<String, Object> cat : labData.entrySet())
         {
-            addParagraph(doc, "\u3010" + cat.getKey() + "\u3011");
+            addParagraph(doc, "【" + cat.getKey() + "】");
             Object v = cat.getValue();
             if (!(v instanceof Map))
             {
@@ -269,7 +269,7 @@ public class FusionReportServiceImpl implements IFusionReportService
             Map<String, Object> inner = (Map<String, Object>) v;
             for (Map.Entry<String, Object> e : inner.entrySet())
             {
-                addParagraph(doc, e.getKey() + "\uff1a" + String.valueOf(e.getValue()));
+                addParagraph(doc, e.getKey() + "：" + String.valueOf(e.getValue()));
             }
         }
     }
@@ -277,10 +277,10 @@ public class FusionReportServiceImpl implements IFusionReportService
     @SuppressWarnings("unchecked")
     private void addFusionResultSection(XWPFDocument doc, Map<String, Object> fusionResponse)
     {
-        addSection(doc, "\u591a\u6a21\u6001\u878d\u5408\u51b3\u7b56\u7ed3\u679c", "");
+        addSection(doc, "多模态融合决策结果", "");
         if (fusionResponse == null)
         {
-            addParagraph(doc, "\uff08\u65e0\uff09");
+            addParagraph(doc, "（无）");
             return;
         }
         Object data = fusionResponse.get("data");
@@ -295,7 +295,7 @@ public class FusionReportServiceImpl implements IFusionReportService
         if (ms instanceof Map)
         {
             Map<String, Object> m = (Map<String, Object>) ms;
-            addParagraph(doc, "\u5355\u6a21\u6001\u8bc4\u5206\uff1a");
+            addParagraph(doc, "单模态评分：");
             appendModalityScore(doc, m, "image", "ImgS");
             appendModalityScore(doc, m, "case", "CaseS");
             appendModalityScore(doc, m, "lab", "LabS");
@@ -305,7 +305,7 @@ public class FusionReportServiceImpl implements IFusionReportService
         if (cc instanceof Map)
         {
             Map<String, Object> c = (Map<String, Object>) cc;
-            addParagraph(doc, "\u4e00\u81f4\u6027\u6821\u9a8c\uff1a" + str(c.get("level")));
+            addParagraph(doc, "一致性校验：" + str(c.get("level")));
             Object rules = c.get("conflict_rules");
             if (rules instanceof List)
             {
@@ -327,13 +327,13 @@ public class FusionReportServiceImpl implements IFusionReportService
         if (fc instanceof Map)
         {
             Map<String, Object> f = (Map<String, Object>) fc;
-            addParagraph(doc, "\u7efc\u5408\u8bc4\u5206\uff1a\u539f\u59cb " + str(f.get("raw_score")) + " \u7f6e\u4fe1 "
-                    + str(f.get("confidence_factor")) + " \u6700\u7ec8 " + str(f.get("final_score")));
+            addParagraph(doc, "综合评分：原始 " + str(f.get("raw_score")) + " 置信 "
+                    + str(f.get("confidence_factor")) + " 最终 " + str(f.get("final_score")));
             Object w = f.get("weights");
             if (w instanceof Map)
             {
                 Map<String, Object> wm = (Map<String, Object>) w;
-                addParagraph(doc, "Weights ImgS=" + str(wm.get("ImgS")) + " CaseS=" + str(wm.get("CaseS")) + " LabS=" + str(wm.get("LabS")));
+                addParagraph(doc, "权重 ImgS=" + str(wm.get("ImgS")) + " CaseS=" + str(wm.get("CaseS")) + " LabS=" + str(wm.get("LabS")));
             }
         }
 
@@ -341,7 +341,7 @@ public class FusionReportServiceImpl implements IFusionReportService
         if (diag instanceof Map)
         {
             Map<String, Object> dg = (Map<String, Object>) diag;
-            addParagraph(doc, "\u8bca\u65ad\u8f93\u51fa\uff1a" + str(dg.get("grade_cn")) + "(" + str(dg.get("grade")) + ") "
+            addParagraph(doc, "诊断输出：" + str(dg.get("grade_cn")) + "(" + str(dg.get("grade")) + ") "
                     + str(dg.get("severity_cn")) + "(" + str(dg.get("severity")) + ")");
             addParagraph(doc, str(dg.get("action")));
         }
@@ -349,7 +349,7 @@ public class FusionReportServiceImpl implements IFusionReportService
         Object sg = d.get("structured_suggestions");
         if (sg instanceof List)
         {
-            addParagraph(doc, "\u7ed3\u6784\u5316\u5efa\u8bae\uff1a");
+            addParagraph(doc, "结构化建议：");
             int i = 1;
             for (Object o : (List<?>) sg)
             {
@@ -438,9 +438,9 @@ public class FusionReportServiceImpl implements IFusionReportService
         XWPFParagraph paragraph = doc.createParagraph();
         XWPFRun labelRun = paragraph.createRun();
         labelRun.setBold(true);
-        labelRun.setText(label + "\uff1a");
+        labelRun.setText(label + "：");
         XWPFRun valueRun = paragraph.createRun();
-        valueRun.setText(safeText(value, "\u6682\u65e0"));
+        valueRun.setText(safeText(value, "暂无"));
     }
 
     private void addSection(XWPFDocument doc, String title, String content)
@@ -497,23 +497,23 @@ public class FusionReportServiceImpl implements IFusionReportService
     {
         if (xray == null)
         {
-            throw new ServiceException("Image not found");
+            throw new ServiceException("影像不存在");
         }
         if (xray.getPatientId() == null)
         {
-            throw new ServiceException("Image not bound to patient");
+            throw new ServiceException("影像未绑定患者");
         }
         if (!SecurityUtils.isAdmin())
         {
             Long userId = SecurityUtils.getUserId();
             if (userId == null)
             {
-                throw new ServiceException("No permission");
+                throw new ServiceException("无访问权限");
             }
             com.ruoyi.emr.domain.MedicalPatient patient = medicalPatientMapper.selectMedicalPatientByPatientId(xray.getPatientId());
             if (patient == null || patient.getAttendingDoctorId() == null || !patient.getAttendingDoctorId().equals(userId))
             {
-                throw new ServiceException("No permission for this patient image");
+                throw new ServiceException("无权访问该患者的影像");
             }
         }
     }

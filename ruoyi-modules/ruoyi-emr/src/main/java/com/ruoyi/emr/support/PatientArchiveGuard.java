@@ -8,7 +8,7 @@ import com.ruoyi.emr.domain.MedicalPatient;
 import com.ruoyi.emr.mapper.MedicalPatientMapper;
 
 /**
- * Reject mutating operations when patient case is archived.
+ * 患者病历已归档时，拦截写操作。
  */
 @Component
 public class PatientArchiveGuard
@@ -25,7 +25,7 @@ public class PatientArchiveGuard
         MedicalPatient p = medicalPatientMapper.selectMedicalPatientByPatientId(patientId);
         if (p != null && p.getIsArchived() != null && p.getIsArchived() == 1)
         {
-            throw new ServiceException("???????r???????????r???????????");
+            throw new ServiceException("该患者已归档，暂不允许进行此项操作。");
         }
     }
 }

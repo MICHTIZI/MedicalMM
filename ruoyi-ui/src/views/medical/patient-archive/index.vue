@@ -49,30 +49,30 @@
 <script>
 import { listPatientCards, unarchivePatient } from '@/api/medical/patient'
 
-/** All UI strings as \\u escapes (UTF-8 safe in repo / editor) */
+/** 页面文案 */
 const L = {
-  formPatientName: '\u60a3\u8005\u59d3\u540d',
-  placeholderName: '\u59d3\u540d\u6a21\u7cca\u67e5\u8be2',
-  btnSearch: '\u641c\u7d22',
-  btnReset: '\u91cd\u7f6e',
-  alertTitle: '\u4ee5\u4e0b\u4e3a\u5df2\u5f52\u6863\u60a3\u8005\uff0c\u4ec5\u53ef\u67e5\u770b\u4fe1\u606f\u4e0e\u53d6\u6d88\u5f52\u6863\uff1b\u7f16\u8f91\u6570\u636e\u8bf7\u5148\u5728\u300c\u60a3\u8005\u5217\u8868\u300d\u4e2d\u53d6\u6d88\u5f52\u6863\u3002',
-  colPatientId: '\u60a3\u8005ID',
-  colName: '\u59d3\u540d',
-  colDoctor: '\u4e3b\u6cbb\u533b\u751f',
-  colArchiveTime: '\u5f52\u6863\u65f6\u95f4',
-  colArchiveBy: '\u5f52\u6863\u4eba',
-  colArchiveRemark: '\u5f52\u6863\u5907\u6ce8',
-  colDiagStatus: '\u8bca\u65ad\u72b6\u6001',
-  colAction: '\u64cd\u4f5c',
-  btnUnarchive: '\u53d6\u6d88\u5f52\u6863',
-  dash: '\u2014',
-  diag0: '\u672a\u5f00\u59cb',
-  diag1: 'AI \u8bca\u65ad\u4e2d',
-  diag2: '\u8bca\u65ad\u5b8c\u6210',
-  diag3: '\u5f85\u5ba1\u6838',
-  diag4: '\u5df2\u751f\u6210\u62a5\u544a',
-  confirmUnarchive: '\u786e\u8ba4\u53d6\u6d88\u5f52\u6863\uff1f\u53d6\u6d88\u540e\u60a3\u8005\u5c06\u56de\u5230\u300c\u60a3\u8005\u5217\u8868\u300d\u5e76\u53ef\u7ee7\u7eed\u5f55\u5165\u4e0e\u4fee\u6539\u3002',
-  msgUnarchivedOk: '\u5df2\u53d6\u6d88\u5f52\u6863'
+  formPatientName: '患者姓名',
+  placeholderName: '姓名模糊查询',
+  btnSearch: '搜索',
+  btnReset: '重置',
+  alertTitle: '以下为已归档患者，仅可查看信息与取消归档；编辑数据请先在「患者列表」中取消归档。',
+  colPatientId: '患者ID',
+  colName: '姓名',
+  colDoctor: '主治医生',
+  colArchiveTime: '归档时间',
+  colArchiveBy: '归档人',
+  colArchiveRemark: '归档备注',
+  colDiagStatus: '诊断状态',
+  colAction: '操作',
+  btnUnarchive: '取消归档',
+  dash: '—',
+  diag0: '未开始',
+  diag1: 'AI 诊断中',
+  diag2: '诊断完成',
+  diag3: '待审核',
+  diag4: '已生成报告',
+  confirmUnarchive: '确认取消归档？取消后患者将回到「患者列表」并可继续录入与修改。',
+  msgUnarchivedOk: '已取消归档'
 }
 
 export default {

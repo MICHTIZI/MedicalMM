@@ -53,7 +53,7 @@ public class EmrRecordController extends BaseController
         IPage<EmrRecord> result = emrRecordService.selectRecordPage(page, query);
         TableDataInfo rsp = new TableDataInfo();
         rsp.setCode(HttpStatus.SUCCESS);
-        rsp.setMsg("??????");
+        rsp.setMsg("查询成功");
         rsp.setRows(result.getRecords());
         rsp.setTotal(result.getTotal());
         return rsp;
@@ -64,20 +64,20 @@ public class EmrRecordController extends BaseController
     public AjaxResult getInfo(@PathVariable Long id)
     {
         EmrRecordDetailVo vo = emrRecordService.getDetail(id);
-        return vo == null ? error("??????????") : success(vo);
+        return vo == null ? error("病历不存在") : success(vo);
     }
 
     @RequiresPermissions("emr:record:add")
-    @Log(title = "???????", businessType = BusinessType.INSERT)
+    @Log(title = "电子病历", businessType = BusinessType.INSERT)
     @PostMapping
     public AjaxResult add(@Valid @RequestBody EmrRecordSaveVo vo)
     {
         Long id = emrRecordService.saveWithEntities(vo);
-        return AjaxResult.success("??????", id);
+        return AjaxResult.success("保存成功", id);
     }
 
     @RequiresPermissions("emr:record:edit")
-    @Log(title = "???????", businessType = BusinessType.UPDATE)
+    @Log(title = "电子病历", businessType = BusinessType.UPDATE)
     @PutMapping
     public AjaxResult edit(@Valid @RequestBody EmrRecordSaveVo vo)
     {
@@ -85,7 +85,7 @@ public class EmrRecordController extends BaseController
     }
 
     @RequiresPermissions("emr:record:remove")
-    @Log(title = "???????", businessType = BusinessType.DELETE)
+    @Log(title = "电子病历", businessType = BusinessType.DELETE)
     @DeleteMapping("/{ids}")
     public AjaxResult remove(@PathVariable Long[] ids)
     {
@@ -97,7 +97,7 @@ public class EmrRecordController extends BaseController
     }
 
     @RequiresPermissions("emr:record:archive")
-    @Log(title = "??????r", businessType = BusinessType.UPDATE)
+    @Log(title = "病历归档", businessType = BusinessType.UPDATE)
     @PutMapping("/archive/{id}")
     public AjaxResult archive(@PathVariable Long id)
     {
@@ -105,7 +105,7 @@ public class EmrRecordController extends BaseController
     }
 
     @RequiresPermissions("emr:record:unarchive")
-    @Log(title = "?????????r", businessType = BusinessType.UPDATE)
+    @Log(title = "病历取消归档", businessType = BusinessType.UPDATE)
     @PutMapping("/unarchive/{id}")
     public AjaxResult unarchive(@PathVariable Long id)
     {
@@ -121,17 +121,17 @@ public class EmrRecordController extends BaseController
     }
 
     @RequiresPermissions("emr:record:export")
-    @Log(title = "????????", businessType = BusinessType.EXPORT)
+    @Log(title = "电子病历导出", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
     public void export(HttpServletResponse response, EmrRecordQuery query)
     {
         List<EmrRecordExcel> list = emrRecordService.listExport(query);
         ExcelUtil<EmrRecordExcel> util = new ExcelUtil<>(EmrRecordExcel.class);
-        util.exportExcel(response, list, "???????");
+        util.exportExcel(response, list, "电子病历");
     }
 
     @RequiresPermissions("emr:record:import")
-    @Log(title = "????????", businessType = BusinessType.IMPORT)
+    @Log(title = "电子病历导入", businessType = BusinessType.IMPORT)
     @PostMapping("/importData")
     public AjaxResult importData(MultipartFile file) throws Exception
     {

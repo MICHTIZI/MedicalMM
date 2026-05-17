@@ -140,7 +140,7 @@ public class MedicalRecordServiceImpl implements IMedicalRecordService
         MedicalPatient patient = medicalRecordMapper.selectPatientById(patientId);
         if (patient == null)
         {
-            throw new ServiceException("Patient does not exist");
+            throw new ServiceException("患者不存在");
         }
         return patient;
     }
@@ -150,7 +150,7 @@ public class MedicalRecordServiceImpl implements IMedicalRecordService
         Long userId = SecurityUtils.getUserId();
         if (patient.getAttendingDoctorId() == null || !patient.getAttendingDoctorId().equals(userId))
         {
-            throw new ServiceException("Only the attending doctor can create or edit records for this patient");
+            throw new ServiceException("仅主治医生可为该患者创建或修改病历");
         }
     }
 
@@ -162,7 +162,7 @@ public class MedicalRecordServiceImpl implements IMedicalRecordService
         }
         if (record.getOperateDoctorId() == null || !record.getOperateDoctorId().equals(SecurityUtils.getUserId()))
         {
-            throw new ServiceException("No permission to access records operated by another doctor");
+            throw new ServiceException("无权访问其他医生操作的病历");
         }
     }
 
@@ -186,12 +186,12 @@ public class MedicalRecordServiceImpl implements IMedicalRecordService
     {
         if (record.getImageId() == null)
         {
-            throw new ServiceException("Chest X-ray is required");
+            throw new ServiceException("必须选择胸片影像");
         }
         XrayOptionVo xray = medicalRecordMapper.selectXrayById(record.getImageId());
         if (xray == null)
         {
-            throw new ServiceException("Chest X-ray does not exist");
+            throw new ServiceException("胸片影像不存在");
         }
         record.setImagePath(xray.getImagePath());
     }
@@ -204,7 +204,7 @@ public class MedicalRecordServiceImpl implements IMedicalRecordService
         }
         if (medicalRecordMapper.countImageUsed(recordId, imageId) > 0)
         {
-            throw new ServiceException("This chest X-ray is already bound to another record");
+            throw new ServiceException("该胸片已绑定其他病历");
         }
     }
 }
